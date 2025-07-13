@@ -9,7 +9,8 @@ import {
   Settings, 
   LogOut,
   Menu,
-  X
+  X,
+  Sparkles
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
@@ -19,6 +20,7 @@ interface LayoutProps {
 
 const navigation = [
   { name: 'Dashboard', href: '/app', icon: Home },
+  { name: 'AI Writer', href: '/ai-writer', icon: Sparkles },
   { name: 'Campaigns', href: '/campaigns', icon: Mail },
   { name: 'Contacts', href: '/contacts', icon: Users },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },

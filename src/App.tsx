@@ -6,6 +6,7 @@ import { Landing } from './pages/Landing'
 import { Dashboard } from './pages/Dashboard'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
+import { AIWriter } from './pages/AIWriter'
 import { Campaigns } from './pages/Campaigns'
 import { Contacts } from './pages/Contacts'
 import { Analytics } from './pages/Analytics'
@@ -29,6 +30,13 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Dashboard />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/ai-writer" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <AIWriter />
                   </Layout>
                 </ProtectedRoute>
               } />

@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
-import { Mail, Users, TrendingUp, Eye, Plus, Send } from 'lucide-react'
+import { Mail, Users, TrendingUp, Eye, Plus, Send, Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export function Dashboard() {
   const stats = [
@@ -35,25 +36,32 @@ export function Dashboard() {
 
   const quickActions = [
     {
+      title: 'AI Email Writer',
+      description: 'Generate compelling emails with AI',
+      icon: Sparkles,
+      href: '/ai-writer',
+      color: 'from-primary-500 to-primary-600'
+    },
+    {
       title: 'Create Campaign',
       description: 'Start a new cold email campaign',
       icon: Plus,
       href: '/campaigns',
-      color: 'from-primary-500 to-primary-600'
+      color: 'from-accent-500 to-accent-600'
     },
     {
       title: 'Import Contacts',
       description: 'Add contacts from CSV file',
       icon: Users,
       href: '/contacts',
-      color: 'from-accent-500 to-accent-600'
+      color: 'from-emerald-500 to-emerald-600'
     },
     {
       title: 'View Analytics',
       description: 'Check campaign performance',
       icon: TrendingUp,
       href: '/analytics',
-      color: 'from-emerald-500 to-emerald-600'
+      color: 'from-blue-500 to-blue-600'
     }
   ]
 
@@ -91,24 +99,27 @@ export function Dashboard() {
       </div>
 
       {/* Quick Actions */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {quickActions.map((action, index) => (
           <motion.div
             key={action.title}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 + index * 0.1 }}
-            className="neo-card p-6 hover:border-primary-500/30 transition-all cursor-pointer group"
           >
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                <action.icon size={24} className="text-white" />
+            <Link to={action.href} className="block">
+              <div className="neo-card p-6 hover:border-primary-500/30 transition-all cursor-pointer group">
+                <div className="flex items-center gap-4">
+                  <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
+                    <action.icon size={24} className="text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-white">{action.title}</h3>
+                    <p className="text-white/70 text-sm">{action.description}</p>
+                  </div>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-white">{action.title}</h3>
-                <p className="text-white/70 text-sm">{action.description}</p>
-              </div>
-            </div>
+            </Link>
           </motion.div>
         ))}
       </div>
