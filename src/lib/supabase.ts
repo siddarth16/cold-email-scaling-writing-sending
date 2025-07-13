@@ -1,10 +1,21 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing Supabase environment variables')
-}
+// Create a conditional Supabase client - only initialize if valid credentials are provided
+export const supabase: SupabaseClient | null = (() => {
+  if (!supabaseUrl || !supabaseKey || supabaseUrl.includes('placeholder') || supabaseKey.includes('placeholder')) {
+    console.warn('Supabase not configured - authentication features will be disabled')
+    return null
+  }
+  
+  try {
+    return createClient(supabaseUrl, supabaseKey)
+  } catch (error) {
+    console.warn('Failed to initialize Supabase client:', error)
+    return null
+  }
+})()
 
-export const supabase = createClient(supabaseUrl, supabaseKey) 
+export const isSupabaseConfigured = supabase !== null 

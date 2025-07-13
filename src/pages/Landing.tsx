@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Zap, Target, BarChart3, ArrowRight } from 'lucide-react'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 export function Landing() {
   return (
@@ -34,19 +35,31 @@ export function Landing() {
               transition={{ duration: 0.8, delay: 0.2 }}
               className="flex flex-col sm:flex-row gap-4 justify-center"
             >
-              <Link
-                to="/register"
-                className="neo-button group inline-flex items-center gap-2"
-              >
-                Get Started Free
-                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                to="/login"
-                className="px-6 py-3 rounded-lg border border-white/20 text-white hover:bg-white/5 transition-all"
-              >
-                Sign In
-              </Link>
+              {isSupabaseConfigured ? (
+                <>
+                  <Link
+                    to="/register"
+                    className="neo-button group inline-flex items-center gap-2"
+                  >
+                    Get Started Free
+                    <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                  <Link
+                    to="/login"
+                    className="px-6 py-3 rounded-lg border border-white/20 text-white hover:bg-white/5 transition-all"
+                  >
+                    Sign In
+                  </Link>
+                </>
+              ) : (
+                <Link
+                  to="/app"
+                  className="neo-button group inline-flex items-center gap-2"
+                >
+                  Try Demo
+                  <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+              )}
             </motion.div>
           </div>
         </div>
@@ -125,10 +138,10 @@ export function Landing() {
               Join thousands of professionals who trust ColdScale for their email campaigns
             </p>
             <Link
-              to="/register"
+              to={isSupabaseConfigured ? "/register" : "/app"}
               className="neo-button group inline-flex items-center gap-2 text-lg px-8 py-4"
             >
-              Start Your Free Campaign
+              {isSupabaseConfigured ? "Start Your Free Campaign" : "Try Demo Now"}
               <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
             </Link>
           </motion.div>

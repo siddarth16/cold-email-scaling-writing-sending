@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Mail, Lock, ArrowRight } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -11,6 +12,13 @@ export function Login() {
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
+
+  useEffect(() => {
+    // If authentication is disabled, redirect to dashboard
+    if (!isSupabaseConfigured) {
+      navigate('/app')
+    }
+  }, [navigate])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

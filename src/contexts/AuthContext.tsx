@@ -31,8 +31,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    if (!supabase) {
+      // If Supabase is not configured, disable authentication
+      setUser(null)
+      setLoading(false)
+      return
+    }
+
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    supabase!.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
@@ -40,7 +47,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     // Listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, session) => {
+    } = supabase!.auth.onAuthStateChange(async (event, session) => {
       setUser(session?.user ?? null)
       setLoading(false)
     })
@@ -49,8 +56,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [])
 
   const signIn = async (email: string, password: string) => {
+    if (!supabase) {
+      toast.error('Authentication not configured. Please set up Supabase credentials.')
+      throw new Error('Supabase not configured')
+    }
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase!.auth.signInWithPassword({
         email,
         password,
       })
@@ -64,8 +76,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const signUp = async (email: string, password: string) => {
+    if (!supabase) {
+      toast.error('Authentication not configured. Please set up Supabase credentials.')
+      throw new Error('Supabase not configured')
+    }
+
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error } = await supabase!.auth.signUp({
         email,
         password,
       })
@@ -79,8 +96,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const signOut = async () => {
+    if (!supabase) {
+      toast.error('Authentication not configured.')
+      throw new Error('Supabase not configured')
+    }
+
     try {
-      const { error } = await supabase.auth.signOut()
+      const { error } = await supabase!.auth.signOut()
       if (error) throw error
       toast.success('Signed out successfully')
     } catch (error) {
@@ -91,8 +113,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }
 
   const resetPassword = async (email: string) => {
+    if (!supabase) {
+      toast.error('Authentication not configured.')
+      throw new Error('Supabase not configured')
+    }
+
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      const { error } = await supabase!.auth.resetPasswordForEmail(email)
       if (error) throw error
       toast.success('Password reset email sent!')
     } catch (error) {

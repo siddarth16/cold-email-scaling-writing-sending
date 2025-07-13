@@ -13,6 +13,7 @@ import {
   Sparkles
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { isSupabaseConfigured } from '../lib/supabase'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -130,6 +131,15 @@ export function Layout({ children }: LayoutProps) {
           <h1 className="text-lg font-semibold text-white">ColdScale</h1>
           <div className="w-6" />
         </div>
+
+        {/* Demo Mode Banner */}
+        {!isSupabaseConfigured && (
+          <div className="bg-amber-500/20 border-b border-amber-500/30 p-3 text-center">
+            <p className="text-amber-400 text-sm">
+              <strong>Demo Mode:</strong> Authentication is disabled. Set up Supabase credentials to enable user accounts.
+            </p>
+          </div>
+        )}
 
         {/* Page content */}
         <main className="p-4 lg:p-8">
