@@ -1,0 +1,242 @@
+Objective: Build a modern, free, scalable cold email writing, scaling, and sending platform, with a completely original, visually striking UI (no cliché color schemes), powered by only open-source or free tools.
+1. PRODUCT OVERVIEW
+
+Goal:
+Enable any user to generate, personalize, send, and track cold email campaigns directly from the web, without paying for any API or service, and without technical hassle. Platform should feel premium, fast, and different from “template” SaaS products.
+2. USER JOURNEY / KEY FEATURES
+
+    Sign Up & Onboarding
+
+    Campaign Dashboard
+
+    Email Copy Generation (AI)
+
+    Contact Management (Bulk Import/Export)
+
+    Personalization Engine
+
+    Bulk Email Sending (via user SMTP)
+
+    Performance Analytics (Open/Click/Reply Tracking)
+
+    Settings & Integrations
+
+3. DESIGN PHILOSOPHY & UI DIRECTION
+
+Visual Direction:
+
+    Go beyond flat, minimal, or generic SaaS looks.
+
+    Use a “neo-cyber” vibe: clean lines, animated glassy cards, kinetic micro-interactions, dynamic backgrounds (e.g., subtle geometric patterns, slow parallax, glass textures).
+
+    Neutral palette with accents (e.g., teal, copper, emerald—not neon, not purple/blue-pink gradient).
+
+    Use modern fonts (not Montserrat/Roboto/Lato), maybe something geometric with personality.
+
+    Keep every element responsive, touch-friendly, and visually satisfying.
+
+    Interactive feedback for every action—little tactile micro-animations, hover states, and progress feedback.
+
+    Each module (dashboard, contacts, campaigns, analytics) feels like a “control panel” but not in a sci-fi cliché way.
+
+4. FUNCTIONAL REQUIREMENTS & DETAILED STEPS
+Step 1: Project Scaffolding
+
+    Stack:
+
+        Frontend: React (w/ Vite or Next.js for speed), Tailwind CSS or shadcn/ui for quick and clean components, Framer Motion for animations.
+
+        Backend: Supabase (auth + database + storage), Node.js or serverless functions for backend jobs.
+
+        AI: WebLLM (browser-based), or set up a free, self-hosted LLM API using Ollama or LocalAI on Render/GitHub.
+
+        Email Sending: Nodemailer via backend API, user brings their SMTP (Gmail/App Password, Outlook, Mailgun free, etc.).
+
+Step 2: User Authentication
+
+    Implement Supabase Auth (email+password) for sign up/login/reset.
+
+    Use minimal, branded forms with kinetic transitions.
+
+Step 3: Dashboard/Home
+
+    After login, land user on a dashboard:
+
+        Overview: Campaigns, emails sent, recent activity.
+
+        Animated cards (glass effect, shadows, dynamic metrics).
+
+        Quick actions: “New Campaign”, “Import Contacts”, etc.
+
+        Dynamic background (SVG shapes, animated).
+
+Step 4: Email Copy Generation (AI-Powered)
+
+    Integrate WebLLM (browser) for free AI-powered email writing.
+
+    UI for inputting:
+
+        Product/Service, Audience, Objective, Tone, CTA, Length.
+
+        Option to select from templates (B2B, SaaS, Services, Agency, etc.).
+
+        “Generate” button animates into result card.
+
+        Results: Editable, “Regenerate”, “Save as Template”.
+
+Step 5: Contact Management
+
+    Table/list view with search/filter.
+
+    CSV upload (mapping columns to name, email, company, custom fields).
+
+    Allow manual add/edit.
+
+    Export contacts (CSV).
+
+    Option to “segment” contacts into lists.
+
+Step 6: Personalization Engine
+
+    Use token system: {{first_name}}, {{company}}, etc.
+
+    Preview emails for each contact with tokens replaced.
+
+    “Personalization Health” meter (alerts if data missing for a contact).
+
+Step 7: Campaign Creation
+
+    Campaign builder flow:
+
+        Name campaign, select contact list/segment.
+
+        Choose or write email copy.
+
+        Map tokens.
+
+        Configure sending schedule:
+
+            Bulk send now, or stagger (recommended to avoid spam triggers).
+
+            Delay per email (randomize between X-Y seconds).
+
+        Test send to self (user enters their own email for preview).
+
+Step 8: Email Sending Integration
+
+    User enters and verifies their SMTP credentials (encrypted, not visible in frontend).
+
+    Use Nodemailer in backend/serverless function to send emails.
+
+    Each send logs success/failure, retries failed (with limits).
+
+    Visual progress feedback (animated bar, logs per recipient).
+
+    Store logs in Supabase for later analytics.
+
+Step 9: Tracking & Analytics
+
+    Open Tracking: Unique pixel per email, hit logs to Supabase.
+
+    Click Tracking: Use unique redirect URLs (hosted endpoint logs click then redirects).
+
+    Reply Tracking: Parse SMTP “reply-to” (inform user to check inbox).
+
+    Campaign analytics dashboard:
+
+        Opens, Clicks, Bounce Rate, Sending Time, Engagement Graphs.
+
+        Trends per campaign, contact, template.
+
+    Animated data cards, line/bar charts (Recharts or similar).
+
+Step 10: Settings
+
+    Manage SMTP credentials (add, update, delete).
+
+    Manage account, delete data, export history.
+
+    Theme toggle: dark/light, accent color picker.
+
+    Optional: Web push/email notifications (on campaign complete).
+
+5. TECHNICAL BEST PRACTICES
+
+    Every user action must return feedback (toast/snackbar, animation, or transition).
+
+    Input validation, error handling, empty states must be visually informative.
+
+    Store no sensitive info in frontend; all SMTP/auth handled securely server-side.
+
+    Mobile-first responsive, fully tested on Chrome, Safari, Edge.
+
+    All analytics/click/open endpoints are free and do not depend on 3rd-party trackers.
+
+6. NON-FUNCTIONAL REQUIREMENTS
+
+    Zero Cost: No paid APIs, all infra on free tiers.
+
+    No Branding/Watermarks: Product feels premium and “owned” by the user.
+
+    Accessibility: Good color contrast, keyboard navigation, basic screen reader support.
+
+    Performance: Loads quickly, animations optimized, no lag even with large CSVs.
+
+    Documentation:
+
+        README with deployment, SMTP setup guide, and FAQ.
+
+        User onboarding modal/walkthrough on first login.
+
+7. FUTURE IDEAS (Stretch Goals)
+
+    A/B testing for subject lines/copy
+
+    AI-generated subject lines (with sentiment/engagement scoring)
+
+    Chrome extension for “one-click” campaign from LinkedIn/Sales Navigator
+
+    API for integration with other tools
+
+8. DEVELOPMENT & DELIVERY PLAN
+
+    Step 1: Scaffolding & Auth
+
+    Step 2: Dashboard Layout & Campaign Table
+
+    Step 3: Contacts Table & CSV Import
+
+    Step 4: AI Writer Integration (WebLLM)
+
+    Step 5: Personalization UI
+
+    Step 6: Campaign Builder Flow
+
+    Step 7: SMTP Send Integration & Testing
+
+    Step 8: Analytics Tracking (pixel/click)
+
+    Step 9: Polish UI, Test Responsiveness & Error Handling
+
+    Step 10: Write Documentation, Demo, Final QA
+
+Deploy to Vercel/Render/Supabase free tier as a live MVP.
+9. SAMPLE UI REFERENCES
+
+    Look at linear.app for layout inspiration (but not colors).
+
+    See Read.cv for playful but clean micro-interactions.
+
+    Use animated backgrounds from Haikei.app (generate custom SVGs).
+
+    Dashboard should feel original: try glassmorphic cards with muted metallic accents (not purple, not neon, not dark blue).
+
+10. DELIVERY EXPECTATION
+
+    A complete, fully working web app with all source code and deploy guides.
+
+    Live, demo-ready version on free tier hosting.
+
+    No paid dependencies, no upcharges, no forced upgrades.
+
+    UI is unique, not like any “Notion clone”, template, or purple-gradient SaaS.
