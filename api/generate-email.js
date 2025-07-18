@@ -41,7 +41,7 @@ export default async function handler(req, res) {
     }
 
     // Create prompt
-    const geminiPrompt = `You are an expert cold email copywriter. Generate 5 different subject line options and 5 different email body options for a cold email campaign.
+    const geminiPrompt = `You are an expert cold email copywriter. Generate 5 unique subject line options and 5 unique email body options for a cold email campaign.
 
 CAMPAIGN DETAILS:
 - Product/Service: ${prompt.product}
@@ -52,98 +52,40 @@ CAMPAIGN DETAILS:
 - Email Length: ${prompt.length}
 - Template Type: ${prompt.template}
 
-STRICT OUTPUT FORMAT - YOU MUST FOLLOW THIS EXACTLY:
+REQUIREMENTS:
+1. Create 5 completely different and creative subject lines
+2. Write 5 completely different email bodies, each with unique approaches
+3. Use personalization tokens like {{firstName}}, {{company}}, {{position}} where appropriate
+4. Match the ${prompt.tone} tone throughout
+5. Include the call to action: ${prompt.cta}
+6. Make emails approximately ${prompt.length} length
+7. Each email should feel authentic and personal, not templated
 
-<Subject> Option 1; Option 2; Option 3; Option 4; Option 5 <Subject>
+OUTPUT FORMAT - Follow this structure exactly:
+
+<Subject> [Subject 1]; [Subject 2]; [Subject 3]; [Subject 4]; [Subject 5] <Subject>
 
 <Body 1>
-Hi {{firstName}},
-
-I noticed {{company}} is working with ${prompt.audience}, and I thought ${prompt.product} might be relevant.
-
-We've helped similar companies achieve:
-• 30% improvement in efficiency
-• Reduced operational costs
-• Better ${prompt.audience} outcomes
-
-${prompt.cta}
-
-Would you be interested in a brief conversation?
-
-Best regards,
-[Your Name]
+[Write complete first email here]
 <Body 1>
 
 <Body 2>
-Hello {{firstName}},
-
-I came across {{company}} and was impressed by your work in the ${prompt.audience} space.
-
-${prompt.product} has helped companies like yours ${prompt.objective.toLowerCase()} more effectively.
-
-${prompt.cta}
-
-Would this be relevant for {{company}}?
-
-Thanks,
-[Your Name]
+[Write complete second email here]
 <Body 2>
 
 <Body 3>
-Hi {{firstName}},
-
-Quick question about {{company}}'s ${prompt.audience} operations.
-
-We recently helped [Similar Company] achieve remarkable results with ${prompt.product}:
-• 25% increase in productivity
-• Streamlined workflows
-• Better ROI
-
-${prompt.cta}
-
-Interested in learning more?
-
-Best,
-[Your Name]
+[Write complete third email here]
 <Body 3>
 
 <Body 4>
-Hello {{firstName}},
-
-I hope this finds you well. I'm reaching out because ${prompt.product} might be valuable for {{company}}'s ${prompt.audience} team.
-
-Our solution helps companies:
-• ${prompt.objective}
-• Improve efficiency
-• Scale operations
-
-${prompt.cta}
-
-Would you have 15 minutes for a quick call?
-
-Regards,
-[Your Name]
+[Write complete fourth email here]
 <Body 4>
 
 <Body 5>
-Hi {{firstName}},
-
-I noticed {{company}} is expanding in the ${prompt.audience} sector. Thought you might find ${prompt.product} interesting.
-
-We've helped similar organizations:
-• Achieve their goals faster
-• Reduce costs by 20%
-• Improve team performance
-
-${prompt.cta}
-
-Happy to share more details if relevant.
-
-Best regards,
-[Your Name]
+[Write complete fifth email here]
 <Body 5>
 
-Generate compelling, high-converting cold emails that will get responses from ${prompt.audience} prospects.`
+Write compelling, personalized cold emails that will get responses from ${prompt.audience} prospects.`
 
     console.log('Calling Gemini API...')
     
