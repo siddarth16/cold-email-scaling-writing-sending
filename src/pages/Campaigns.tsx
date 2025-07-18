@@ -18,11 +18,14 @@ import {
   TestTube,
   Filter,
   Search,
-  X
+  X,
+  BookOpen,
+  FileText
 } from 'lucide-react'
 import { Campaign, useCampaigns } from '../lib/campaigns'
 import { useContacts, Contact, getFullName } from '../lib/contacts'
 import { PersonalizationEngine } from '../lib/personalization'
+import { useTemplates, EmailTemplate } from '../lib/templates'
 
 interface CampaignFormData {
   name: string
@@ -30,6 +33,7 @@ interface CampaignFormData {
   body: string
   contactIds: string[]
   scheduledAt?: string
+  selectedTemplate?: string
   settings: {
     enablePersonalization: boolean
     enableTracking: boolean
@@ -43,6 +47,7 @@ const initialFormData: CampaignFormData = {
   subject: '',
   body: '',
   contactIds: [],
+  selectedTemplate: '',
   settings: {
     enablePersonalization: true,
     enableTracking: true,
@@ -62,25 +67,53 @@ export default function Campaigns() {
   const [showContactSelector, setShowContactSelector] = useState(false)
   const [contactSearch, setContactSearch] = useState('')
   const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [showTemplateSelector, setShowTemplateSelector] = useState(false)
 
   const campaignManager = useCampaigns()
   const contactManager = useContacts()
+  const templateManager = useTemplates()
   const [campaigns, setCampaigns] = useState<Campaign[]>([])
   const [contacts, setContacts] = useState<Contact[]>([])
+  const [templates, setTemplates] = useState<EmailTemplate[]>([])
 
   // Load data
   useEffect(() => {
     setCampaigns(campaignManager.getAllCampaigns())
     setContacts(contactManager.getAllContacts())
+    setTemplates(templateManager.getAllTemplates())
 
     const unsubscribeCampaigns = campaignManager.subscribe(setCampaigns)
     const unsubscribeContacts = contactManager.subscribe(setContacts)
+    const unsubscribeTemplates = templateManager.subscribe(setTemplates)
 
     return () => {
       unsubscribeCampaigns()
       unsubscribeContacts()
+      unsubscribeTemplates()
     }
   }, [])
+
+  // Handle template selection
+  const handleTemplateSelect = (template: EmailTemplate) => {
+    setFormData(prev => ({
+      ...prev,
+      subject: template.subject,
+      body: template.body,
+      selectedTemplate: template.id,
+      name: prev.name || `Campaign: ${template.name}`
+    }))
+    templateManager.incrementUsage(template.id)
+    setShowTemplateSelector(false)
+  }
+
+  const clearTemplate = () => {
+    setFormData(prev => ({
+      ...prev,
+      subject: '',
+      body: '',
+      selectedTemplate: ''
+    }))
+  }
 
   // Filter campaigns
   const filteredCampaigns = campaigns.filter(campaign => {
@@ -387,6 +420,85 @@ export default function Campaigns() {
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Template Selection */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-white">
+                    Email Template
+                  </label>
+                  <div className="flex gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setShowTemplateSelector(!showTemplateSelector)}
+                      className="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700 transition-colors flex items-center gap-1"
+                    >
+                      <BookOpen size={14} />
+                      {formData.selectedTemplate ? 'Change Template' : 'Select Template'}
+                    </button>
+                    {formData.selectedTemplate && (
+                      <button
+                        type="button"
+                        onClick={clearTemplate}
+                        className="px-3 py-1 bg-gray-600 text-white rounded text-sm hover:bg-gray-700 transition-colors"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {formData.selectedTemplate && (
+                  <div className="mb-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                    <div className="flex items-center gap-2 text-blue-400 text-sm">
+                      <FileText size={14} />
+                      <span>Using template: {templates.find(t => t.id === formData.selectedTemplate)?.name}</span>
+                    </div>
+                  </div>
+                )}
+
+                {showTemplateSelector && (
+                  <div className="border border-gray-600 rounded-lg p-4 bg-gray-700/50 mb-4">
+                    <div className="space-y-3 max-h-64 overflow-y-auto">
+                      {templates.length === 0 ? (
+                        <div className="text-center py-8 text-gray-400">
+                          <BookOpen size={32} className="mx-auto mb-2 opacity-50" />
+                          <p>No templates available</p>
+                          <p className="text-sm">Create templates using the AI Writer</p>
+                        </div>
+                      ) : (
+                        templates.map(template => (
+                          <div
+                            key={template.id}
+                            className="p-3 bg-gray-600/50 rounded-lg border border-gray-500/50 hover:border-blue-500/50 transition-colors cursor-pointer"
+                            onClick={() => handleTemplateSelect(template)}
+                          >
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h4 className="font-medium text-white text-sm">{template.name}</h4>
+                                <p className="text-gray-300 text-xs mt-1 truncate">{template.subject}</p>
+                                <div className="flex items-center gap-2 mt-2">
+                                  <span className="px-2 py-1 bg-gray-700 text-gray-300 rounded text-xs">
+                                    {template.category}
+                                  </span>
+                                  <span className="px-2 py-1 bg-blue-600 text-white rounded text-xs">
+                                    {template.source}
+                                  </span>
+                                  {template.usageCount > 0 && (
+                                    <span className="text-gray-400 text-xs">
+                                      Used {template.usageCount} times
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
               {/* Campaign Name */}
               <div>
                 <label className="block text-sm font-medium text-white mb-2">

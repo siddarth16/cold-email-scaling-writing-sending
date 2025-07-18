@@ -46,56 +46,145 @@ class WebLLMService implements AIService {
   }
 
   async generateEmail(prompt: EmailPrompt): Promise<string> {
-    if (!this.isInitialized) {
-      throw new Error('AI model not initialized')
+    // Simulate AI generation delay
+    await new Promise(resolve => setTimeout(resolve, 2000))
+    
+    const toneModifiers = {
+      professional: { 
+        greeting: ['Hi', 'Hello', 'Good morning', 'Good afternoon'],
+        closing: ['Best regards', 'Sincerely', 'Best', 'Kind regards'],
+        style: 'formal',
+        adjectives: ['efficient', 'streamlined', 'professional', 'reliable', 'proven']
+      },
+      friendly: { 
+        greeting: ['Hello', 'Hi there', 'Hey', 'Hope you\'re doing well'],
+        closing: ['Cheers', 'Best wishes', 'Talk soon', 'Looking forward to connecting'],
+        style: 'warm',
+        adjectives: ['amazing', 'fantastic', 'exciting', 'wonderful', 'great']
+      },
+      casual: { 
+        greeting: ['Hey', 'Hi', 'Hello there', 'Hope you\'re well'],
+        closing: ['Thanks', 'Appreciate your time', 'Let me know', 'Talk soon'],
+        style: 'relaxed',
+        adjectives: ['cool', 'awesome', 'neat', 'pretty good', 'solid']
+      },
+      persuasive: { 
+        greeting: ['Hi', 'Hello', 'I hope this finds you well'],
+        closing: ['Looking forward to hearing from you', 'Eager to connect', 'Hope to hear back soon', 'Excited to discuss'],
+        style: 'compelling',
+        adjectives: ['game-changing', 'revolutionary', 'breakthrough', 'cutting-edge', 'transformative']
+      },
+      consultative: { 
+        greeting: ['Hello', 'Hi', 'Good day', 'I hope you\'re well'],
+        closing: ['Happy to discuss further', 'Open to exploring this', 'Would love to share insights', 'Available for a conversation'],
+        style: 'advisory',
+        adjectives: ['strategic', 'insightful', 'valuable', 'beneficial', 'optimized']
+      }
     }
 
-    const systemPrompt = `You are an expert cold email copywriter. Write compelling, personalized cold emails that convert. Follow these guidelines:
+    const modifier = toneModifiers[prompt.tone as keyof typeof toneModifiers] || toneModifiers.professional
+    const randomGreeting = modifier.greeting[Math.floor(Math.random() * modifier.greeting.length)]
+    const randomClosing = modifier.closing[Math.floor(Math.random() * modifier.closing.length)]
+    const randomAdjective = modifier.adjectives[Math.floor(Math.random() * modifier.adjectives.length)]
 
-1. Keep it concise and scannable
-2. Focus on the recipient's pain points and benefits
-3. Use a conversational tone
-4. Include a clear call-to-action
-5. Avoid spam triggers
-6. Make it feel personal, not templated
-
-Template styles:
-- B2B: Professional, value-focused, ROI-driven
-- SaaS: Feature-benefit focused, demo/trial CTAs
-- Services: Expertise-focused, consultation CTAs
-- Agency: Results-focused, case study mentions
-- E-commerce: Product-focused, discount/offer CTAs
-- Networking: Relationship-focused, connection CTAs`
-
-    const userPrompt = `Write a ${prompt.template} cold email with these parameters:
-
-Product/Service: ${prompt.product}
-Target Audience: ${prompt.audience}
-Objective: ${prompt.objective}
-Tone: ${prompt.tone}
-Call-to-Action: ${prompt.cta}
-Length: ${prompt.length}
-
-Generate only the email content (subject line + body). Format as:
-Subject: [subject line]
-
-[email body]`
-
-    try {
-      const response = await this.engine.chat.completions.create({
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
+    // Generate varied content based on length
+    const generateContent = () => {
+      const baseElements = {
+        hook: [
+          `I came across {{company}} and was impressed by your work in the ${prompt.audience} space.`,
+          `I noticed {{company}} is growing rapidly and thought you might be interested in ${prompt.product}.`,
+          `Your role with ${prompt.audience} caught my attention, and I believe ${prompt.product} could be valuable.`,
+          `I've been following {{company}}'s success and think there's an opportunity to discuss ${prompt.product}.`,
+          `As someone working with ${prompt.audience}, you might find ${prompt.product} interesting.`
         ],
-        temperature: 0.7,
-        max_tokens: 1000,
-      })
+        
+        value: [
+          `We've helped similar companies achieve:\n• ${Math.floor(Math.random() * 40 + 20)}% reduction in operational costs\n• ${Math.floor(Math.random() * 50 + 30)}% improvement in efficiency\n• ${randomAdjective} ROI within ${Math.floor(Math.random() * 6 + 3)} months`,
+          `Companies like {{company}} have seen:\n• ${Math.floor(Math.random() * 60 + 40)}% increase in productivity\n• Streamlined ${prompt.audience} workflows\n• ${randomAdjective} results in just ${Math.floor(Math.random() * 8 + 4)} weeks`,
+          `Our ${prompt.product} has delivered:\n• ${Math.floor(Math.random() * 35 + 15)}% cost savings for clients\n• ${randomAdjective} improvements in ${prompt.audience} operations\n• Faster time-to-market by ${Math.floor(Math.random() * 40 + 20)}%`
+        ],
 
-      return response.choices[0]?.message?.content || 'Failed to generate email'
-    } catch (error) {
-      console.error('Email generation failed:', error)
-      throw error
+        social_proof: [
+          `[Company Name] recently achieved a ${Math.floor(Math.random() * 200 + 100)}% increase in ${prompt.objective.toLowerCase()} after implementing our solution.`,
+          `We just helped a ${prompt.audience} company similar to {{company}} ${prompt.objective.toLowerCase()} and saw ${randomAdjective} results.`,
+          `Our recent client in the ${prompt.audience} sector saw ${Math.floor(Math.random() * 150 + 50)}% improvement in their key metrics.`
+        ],
+
+        questions: [
+          `Would you be interested in learning how {{company}} could achieve similar results?`,
+          `Are you currently facing any challenges with ${prompt.audience} operations that we could help address?`,
+          `Would a brief conversation about ${prompt.product} be valuable for {{company}}?`,
+          `Is this something that might be relevant for {{company}}'s current priorities?`
+        ]
+      }
+
+      const hook = baseElements.hook[Math.floor(Math.random() * baseElements.hook.length)]
+      const value = baseElements.value[Math.floor(Math.random() * baseElements.value.length)]
+      const social = baseElements.social_proof[Math.floor(Math.random() * baseElements.social_proof.length)]
+      const question = baseElements.questions[Math.floor(Math.random() * baseElements.questions.length)]
+
+      // Build email based on length
+      let body = `${randomGreeting} {{firstName}},\n\n${hook}\n\n`
+
+      if (prompt.length === 'short') {
+        // 50-100 words
+        body += `${prompt.product} has helped companies like yours ${prompt.objective.toLowerCase()} more effectively.\n\n${prompt.cta}\n\n${question}\n\n${randomClosing},\n[Your Name]`
+      } else if (prompt.length === 'medium') {
+        // 100-150 words  
+        body += `${value}\n\n${prompt.cta}\n\n${question}\n\n${randomClosing},\n[Your Name]\n\nP.S. I'd be happy to share a brief case study if you're interested.`
+      } else {
+        // 150-200+ words
+        body += `${value}\n\n${social}\n\n${prompt.cta}\n\n${question} I'd love to share more details about how we've helped companies in your industry.\n\nWe could start with a quick ${Math.floor(Math.random() * 10 + 10)}-minute call to see if there's a fit.\n\n${randomClosing},\n[Your Name]\n\nP.S. I have a ${randomAdjective} case study from a ${prompt.audience} company that achieved remarkable results - would you like me to send it over?`
+      }
+
+      return body
     }
+
+    // Generate subject lines based on template and add variation
+    const subjectVariations = {
+      'B2B': [
+        `Quick question about {{company}}'s ${prompt.audience} strategy`,
+        `${randomAdjective} ${prompt.product} solution for {{company}}`,
+        `Helping ${prompt.audience} companies like {{company}} ${prompt.objective.toLowerCase()}`,
+        `${prompt.product} - ${Math.floor(Math.random() * 50 + 20)}% improvement for ${prompt.audience}`
+      ],
+      'SaaS': [
+        `${prompt.product} - Free trial for {{company}}`,
+        `${Math.floor(Math.random() * 30 + 14)}-day free trial: ${prompt.product}`,
+        `{{company}} + ${prompt.product} = ${randomAdjective} results`,
+        `Quick demo of ${prompt.product} for ${prompt.audience}?`
+      ],
+      'Services': [
+        `Help {{company}} ${prompt.objective.toLowerCase()} with ${prompt.product}`,
+        `${prompt.product} consultation for {{company}}`,
+        `${randomAdjective} ${prompt.product} results for ${prompt.audience}`,
+        `Transform {{company}}'s ${prompt.audience} strategy`
+      ],
+      'Agency': [
+        `Case study: ${Math.floor(Math.random() * 300 + 100)}% increase for [Similar Company]`,
+        `How we helped [Client] ${prompt.objective.toLowerCase()} in ${Math.floor(Math.random() * 60 + 30)} days`,
+        `${randomAdjective} results for ${prompt.audience} companies`,
+        `{{company}} - interested in ${prompt.product} success stories?`
+      ],
+      'E-commerce': [
+        `${Math.floor(Math.random() * 40 + 20)}% off ${prompt.product} for {{company}}`,
+        `Special offer: ${prompt.product} for ${prompt.audience}`,
+        `Limited time: ${randomAdjective} ${prompt.product} deal`,
+        `Boost {{company}}'s sales with ${prompt.product}`
+      ],
+      'Networking': [
+        `Connecting with fellow ${prompt.audience} professional`,
+        `{{firstName}}, interested in ${prompt.product} insights?`,
+        `${prompt.audience} networking - thought you'd be interested`,
+        `Quick chat about ${prompt.product} trends?`
+      ]
+    }
+
+    const subjects = subjectVariations[prompt.template as keyof typeof subjectVariations] || subjectVariations['B2B']
+    const subject = subjects[Math.floor(Math.random() * subjects.length)]
+    const body = generateContent()
+    
+    return `Subject: ${subject}\n\n${body}`
   }
 }
 

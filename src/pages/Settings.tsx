@@ -5,7 +5,6 @@ import {
   Mail, 
   User, 
   Shield, 
-  Palette, 
   Server,
   Save,
   TestTube,
@@ -18,20 +17,17 @@ import {
   Download,
   Upload,
   Trash2,
-  RefreshCw
+  RefreshCw,
+  BookOpen,
+  ExternalLink,
+  Play,
+  HelpCircle
 } from 'lucide-react'
 import { SMTPService, SMTPConfig, useSMTP } from '../lib/smtp'
 import { useAuth } from '../contexts/AuthContext'
 import { isSupabaseConfigured } from '../lib/supabase'
 
-type SettingsTab = 'smtp' | 'account' | 'theme' | 'data'
-
-interface ThemeSettings {
-  mode: 'dark' | 'light'
-  primaryColor: string
-  accentColor: string
-  animation: boolean
-}
+type SettingsTab = 'smtp' | 'account' | 'setup' | 'data'
 
 export function Settings() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('smtp')
@@ -42,12 +38,6 @@ export function Settings() {
   const [isSaving, setIsSaving] = useState(false)
   const [saveResult, setSaveResult] = useState<{ success: boolean; message: string } | null>(null)
   const [selectedPreset, setSelectedPreset] = useState<string>('custom')
-  const [themeSettings, setThemeSettings] = useState<ThemeSettings>({
-    mode: 'dark',
-    primaryColor: '#14b8a6',
-    accentColor: '#f59e0b',
-    animation: true
-  })
 
   const smtpService = useSMTP()
   const { user } = useAuth()
@@ -58,55 +48,7 @@ export function Settings() {
     if (existingConfig) {
       setSmtpConfig(existingConfig)
     }
-
-    // Load theme settings
-    const savedTheme = localStorage.getItem('coldscale_theme_settings')
-    if (savedTheme) {
-      setThemeSettings(JSON.parse(savedTheme))
-    }
   }, [])
-
-  // Load theme settings from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem('coldscale_theme_settings')
-    if (stored) {
-      const settings = JSON.parse(stored)
-      setThemeSettings(settings)
-      applyThemeSettings(settings)
-    }
-  }, [])
-
-  // Apply theme settings to document root
-  const applyThemeSettings = (settings: ThemeSettings) => {
-    const root = document.documentElement
-    
-    // Convert hex colors to RGB for better CSS variable usage
-    const hexToRgb = (hex: string) => {
-      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-      return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '20, 184, 166'
-    }
-
-    const primaryRgb = hexToRgb(settings.primaryColor)
-    const accentRgb = hexToRgb(settings.accentColor)
-
-    // Set CSS custom properties
-    root.style.setProperty('--color-primary', primaryRgb)
-    root.style.setProperty('--color-accent', accentRgb)
-    root.style.setProperty('--color-primary-hex', settings.primaryColor)
-    root.style.setProperty('--color-accent-hex', settings.accentColor)
-    
-    // Apply theme mode
-    root.classList.toggle('light-mode', settings.mode === 'light')
-    
-    // Apply animation settings
-    if (!settings.animation) {
-      root.style.setProperty('--animation-duration', '0s')
-      root.style.setProperty('--transition-duration', '0s')
-    } else {
-      root.style.setProperty('--animation-duration', '0.3s')
-      root.style.setProperty('--transition-duration', '0.2s')
-    }
-  }
 
   // Handle SMTP configuration changes
   const handleSmtpChange = (field: keyof SMTPConfig, value: string | number | boolean) => {
@@ -176,23 +118,6 @@ export function Settings() {
     }
   }
 
-  // Save theme settings
-  const saveThemeSettings = () => {
-    setIsSaving(true)
-    try {
-      localStorage.setItem('coldscale_theme_settings', JSON.stringify(themeSettings))
-      applyThemeSettings(themeSettings)
-      setSaveResult({ success: true, message: 'Theme settings saved successfully!' })
-      setTimeout(() => setSaveResult(null), 3000)
-    } catch (error) {
-      console.error('Failed to save theme settings:', error)
-      setSaveResult({ success: false, message: 'Failed to save theme settings' })
-      setTimeout(() => setSaveResult(null), 3000)
-    } finally {
-      setIsSaving(false)
-    }
-  }
-
   // Export data
   const exportData = () => {
     const data = {
@@ -250,456 +175,567 @@ export function Settings() {
   }
 
   const tabs = [
-    { id: 'smtp', label: 'SMTP Settings', icon: Mail },
-    { id: 'account', label: 'Account', icon: User },
-    { id: 'theme', label: 'Theme', icon: Palette },
-    { id: 'data', label: 'Data', icon: Server }
+    { id: 'smtp', name: 'SMTP Settings', icon: Mail },
+    { id: 'account', name: 'Account', icon: User },
+    { id: 'setup', name: 'Gmail Setup', icon: BookOpen },
+    { id: 'data', name: 'Data Management', icon: Server },
   ]
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Settings</h1>
-          <p className="text-gray-400">Configure your account and application preferences</p>
+          <h1 className="text-3xl font-bold text-white">Settings</h1>
+          <p className="text-white/70 mt-1">Configure your account and email settings</p>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="bg-gray-800/30 backdrop-blur-sm rounded-xl border border-gray-700/50">
-        <div className="flex border-b border-gray-700/50">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as SettingsTab)}
-              className={`flex items-center gap-2 px-6 py-4 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? 'text-teal-400 border-b-2 border-teal-400'
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              <tab.icon size={16} />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+      {/* Settings Navigation */}
+      <div className="flex space-x-1 bg-gray-800/30 backdrop-blur-sm rounded-xl p-1 border border-gray-700/50">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as SettingsTab)}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all text-sm font-medium ${
+              activeTab === tab.id
+                ? 'bg-primary-500/20 text-primary-400 border border-primary-500/30'
+                : 'text-white/60 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            <tab.icon size={16} />
+            {tab.name}
+          </button>
+        ))}
+      </div>
 
-        <div className="p-6">
-          {/* SMTP Settings */}
-          {activeTab === 'smtp' && (
+      {/* Settings Content */}
+      <div className="neo-card p-8">
+        {/* Gmail Setup Instructions */}
+        {activeTab === 'setup' && (
+          <div className="space-y-8">
+            <div className="flex items-center gap-3 mb-6">
+              <BookOpen className="text-blue-400" size={24} />
+              <div>
+                <h2 className="text-xl font-semibold text-white">Gmail Automation Setup</h2>
+                <p className="text-gray-400">Step-by-step guide to set up automated cold email campaigns</p>
+              </div>
+            </div>
+
+            {/* Setup Steps */}
             <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Mail className="text-teal-400" size={24} />
-                <div>
-                  <h2 className="text-xl font-semibold text-white">SMTP Configuration</h2>
-                  <p className="text-gray-400">Configure your email server settings for sending campaigns</p>
-                </div>
-              </div>
-
-              {/* Preset Selection */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-white mb-2">
-                  Email Provider Preset
-                </label>
-                <select
-                  value={selectedPreset}
-                  onChange={(e) => loadPreset(e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                >
-                  <option value="custom">Custom Configuration</option>
-                  <option value="gmail">Gmail</option>
-                  <option value="outlook">Outlook</option>
-                  <option value="yahoo">Yahoo</option>
-                </select>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* SMTP Host */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    SMTP Host
-                  </label>
-                  <input
-                    type="text"
-                    value={smtpConfig.host || ''}
-                    onChange={(e) => handleSmtpChange('host', e.target.value)}
-                    placeholder="smtp.gmail.com"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-
-                {/* SMTP Port */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    SMTP Port
-                  </label>
-                  <input
-                    type="number"
-                    value={smtpConfig.port || ''}
-                    onChange={(e) => handleSmtpChange('port', parseInt(e.target.value))}
-                    placeholder="587"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-
-                {/* Username */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Username
-                  </label>
-                  <input
-                    type="text"
-                    value={smtpConfig.username || ''}
-                    onChange={(e) => handleSmtpChange('username', e.target.value)}
-                    placeholder="your-email@gmail.com"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-
-                {/* Password */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Password
-                  </label>
-                  <div className="relative">
-                    <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={smtpConfig.password || ''}
-                      onChange={(e) => handleSmtpChange('password', e.target.value)}
-                      placeholder="your-app-password"
-                      className="w-full px-3 py-2 pr-10 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+              {/* Step 1 */}
+              <div className="bg-gray-700/30 rounded-lg p-6 border border-gray-600/50">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    1
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white mb-2">Enable 2-Factor Authentication</h3>
+                    <p className="text-gray-300 mb-3">
+                      First, you need to enable 2-factor authentication on your Gmail account to generate app passwords.
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Go to your Google Account settings
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Navigate to Security → 2-Step Verification
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Follow the setup process to enable 2FA
+                      </div>
+                    </div>
+                    <a
+                      href="https://myaccount.google.com/security"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 mt-3 text-primary-400 hover:text-primary-300 transition-colors"
                     >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                      Open Google Security Settings
+                      <ExternalLink size={14} />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 2 */}
+              <div className="bg-gray-700/30 rounded-lg p-6 border border-gray-600/50">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    2
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white mb-2">Generate App Password</h3>
+                    <p className="text-gray-300 mb-3">
+                      Create a specific app password for ColdScale to access your Gmail account securely.
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Go to Google Account → Security → App passwords
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Select "Mail" as the app and "Other" as the device
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Name it "ColdScale" and generate the password
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Copy the 16-character password (you'll need this for SMTP)
+                      </div>
+                    </div>
+                    <a
+                      href="https://myaccount.google.com/apppasswords"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 mt-3 text-primary-400 hover:text-primary-300 transition-colors"
+                    >
+                      Generate App Password
+                      <ExternalLink size={14} />
+                    </a>
+                  </div>
+                </div>
+              </div>
+
+              {/* Step 3 */}
+              <div className="bg-gray-700/30 rounded-lg p-6 border border-gray-600/50">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    3
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white mb-2">Configure SMTP Settings</h3>
+                    <p className="text-gray-300 mb-3">
+                      Use these settings in the SMTP tab to connect your Gmail account.
+                    </p>
+                    <div className="bg-gray-800/50 rounded-lg p-4 space-y-2">
+                      <div className="grid grid-cols-2 gap-4 text-sm">
+                        <div>
+                          <span className="text-gray-400">SMTP Server:</span>
+                          <span className="text-white ml-2 font-mono">smtp.gmail.com</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Port:</span>
+                          <span className="text-white ml-2 font-mono">587</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Security:</span>
+                          <span className="text-white ml-2">TLS/STARTTLS</span>
+                        </div>
+                        <div>
+                          <span className="text-gray-400">Username:</span>
+                          <span className="text-white ml-2">your.email@gmail.com</span>
+                        </div>
+                      </div>
+                      <div>
+                        <span className="text-gray-400">Password:</span>
+                        <span className="text-white ml-2">Use the 16-character app password</span>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setActiveTab('smtp')}
+                      className="inline-flex items-center gap-2 mt-3 px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition-colors"
+                    >
+                      Configure SMTP Settings
+                      <SettingsIcon size={14} />
                     </button>
                   </div>
                 </div>
+              </div>
 
-                {/* From Email */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    From Email
-                  </label>
-                  <input
-                    type="email"
-                    value={smtpConfig.fromEmail || ''}
-                    onChange={(e) => handleSmtpChange('fromEmail', e.target.value)}
-                    placeholder="sender@yourdomain.com"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
-                </div>
-
-                {/* From Name */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    From Name
-                  </label>
-                  <input
-                    type="text"
-                    value={smtpConfig.fromName || ''}
-                    onChange={(e) => handleSmtpChange('fromName', e.target.value)}
-                    placeholder="Your Name"
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  />
+              {/* Step 4 */}
+              <div className="bg-gray-700/30 rounded-lg p-6 border border-gray-600/50">
+                <div className="flex items-start gap-4">
+                  <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                    4
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="text-lg font-semibold text-white mb-2">Test & Launch Campaigns</h3>
+                    <p className="text-gray-300 mb-3">
+                      Test your configuration and start sending automated cold email campaigns.
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Use the "Test Connection" button in SMTP settings
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Import your contacts or add them manually
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Create your first campaign with AI-generated emails
+                      </div>
+                      <div className="flex items-center gap-2 text-sm text-gray-400">
+                        <Play size={12} />
+                        Monitor performance in the Analytics dashboard
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* Secure Connection */}
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="secure"
-                  checked={smtpConfig.secure || false}
-                  onChange={(e) => handleSmtpChange('secure', e.target.checked)}
-                  className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
-                />
-                <label htmlFor="secure" className="text-white">
-                  Use SSL/TLS (recommended for port 465)
+              {/* Best Practices */}
+              <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-6">
+                <div className="flex items-start gap-3">
+                  <HelpCircle className="text-blue-400 mt-1" size={20} />
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Best Practices</h3>
+                    <ul className="space-y-1 text-gray-300 text-sm">
+                      <li>• Start with small test campaigns (10-20 emails) to verify deliverability</li>
+                      <li>• Keep daily sending limits reasonable (50-100 emails/day for new accounts)</li>
+                      <li>• Always personalize emails with recipient names and company information</li>
+                      <li>• Monitor spam rates and adjust content if emails go to spam folders</li>
+                      <li>• Use different email templates to avoid being flagged as automated</li>
+                      <li>• Include proper unsubscribe links and respect opt-out requests</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Warning */}
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-6">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="text-yellow-400 mt-1" size={20} />
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-2">Important Notes</h3>
+                    <ul className="space-y-1 text-gray-300 text-sm">
+                      <li>• Gmail has daily sending limits (500 emails/day for personal accounts)</li>
+                      <li>• Always comply with CAN-SPAM Act and GDPR regulations</li>
+                      <li>• Never send unsolicited emails to purchased lists</li>
+                      <li>• Monitor your sender reputation to avoid being blacklisted</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* SMTP Settings */}
+        {activeTab === 'smtp' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Mail className="text-teal-400" size={24} />
+              <div>
+                <h2 className="text-xl font-semibold text-white">SMTP Configuration</h2>
+                <p className="text-gray-400">Configure your email server settings for sending campaigns</p>
+              </div>
+            </div>
+
+            {/* Preset Selection */}
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-white mb-2">
+                Email Provider Preset
+              </label>
+              <select
+                value={selectedPreset}
+                onChange={(e) => loadPreset(e.target.value)}
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+              >
+                <option value="custom">Custom Configuration</option>
+                <option value="gmail">Gmail</option>
+                <option value="outlook">Outlook</option>
+                <option value="yahoo">Yahoo</option>
+              </select>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* SMTP Host */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  SMTP Host
                 </label>
+                <input
+                  type="text"
+                  value={smtpConfig.host || ''}
+                  onChange={(e) => handleSmtpChange('host', e.target.value)}
+                  placeholder="smtp.gmail.com"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
               </div>
 
-              {/* Test & Save Buttons */}
-              <div className="flex items-center gap-4">
-                <button
-                  onClick={testConnection}
-                  disabled={isTestingConnection}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                >
-                  <TestTube size={16} className={isTestingConnection ? 'animate-spin' : ''} />
-                  Test Connection
-                </button>
-                <button
-                  onClick={saveSmtpConfig}
-                  disabled={isSaving}
-                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
-                >
-                  <Save size={16} className={isSaving ? 'animate-spin' : ''} />
-                  Save Configuration
-                </button>
+              {/* SMTP Port */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  SMTP Port
+                </label>
+                <input
+                  type="number"
+                  value={smtpConfig.port || ''}
+                  onChange={(e) => handleSmtpChange('port', parseInt(e.target.value))}
+                  placeholder="587"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
               </div>
 
-              {/* Test Result */}
-              {testResult && (
-                <div className={`flex items-center gap-2 p-3 rounded-lg ${
-                  testResult.success ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
-                }`}>
-                  {testResult.success ? <Check size={16} /> : <X size={16} />}
-                  {testResult.message}
+              {/* Username */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Username
+                </label>
+                <input
+                  type="text"
+                  value={smtpConfig.username || ''}
+                  onChange={(e) => handleSmtpChange('username', e.target.value)}
+                  placeholder="your-email@gmail.com"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  Password
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={smtpConfig.password || ''}
+                    onChange={(e) => handleSmtpChange('password', e.target.value)}
+                    placeholder="your-app-password"
+                    className="w-full px-3 py-2 pr-10 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* From Email */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  From Email
+                </label>
+                <input
+                  type="email"
+                  value={smtpConfig.fromEmail || ''}
+                  onChange={(e) => handleSmtpChange('fromEmail', e.target.value)}
+                  placeholder="sender@yourdomain.com"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+
+              {/* From Name */}
+              <div>
+                <label className="block text-sm font-medium text-white mb-2">
+                  From Name
+                </label>
+                <input
+                  type="text"
+                  value={smtpConfig.fromName || ''}
+                  onChange={(e) => handleSmtpChange('fromName', e.target.value)}
+                  placeholder="Your Name"
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
+                />
+              </div>
+            </div>
+
+            {/* Secure Connection */}
+            <div className="flex items-center gap-3">
+              <input
+                type="checkbox"
+                id="secure"
+                checked={smtpConfig.secure || false}
+                onChange={(e) => handleSmtpChange('secure', e.target.checked)}
+                className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
+              />
+              <label htmlFor="secure" className="text-white">
+                Use SSL/TLS (recommended for port 465)
+              </label>
+            </div>
+
+            {/* Test & Save Buttons */}
+            <div className="flex items-center gap-4">
+              <button
+                onClick={testConnection}
+                disabled={isTestingConnection}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                <TestTube size={16} className={isTestingConnection ? 'animate-spin' : ''} />
+                Test Connection
+              </button>
+              <button
+                onClick={saveSmtpConfig}
+                disabled={isSaving}
+                className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+              >
+                <Save size={16} className={isSaving ? 'animate-spin' : ''} />
+                Save Configuration
+              </button>
+            </div>
+
+            {/* Test Result */}
+            {testResult && (
+              <div className={`flex items-center gap-2 p-3 rounded-lg ${
+                testResult.success ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+              }`}>
+                {testResult.success ? <Check size={16} /> : <X size={16} />}
+                {testResult.message}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Account Settings */}
+        {activeTab === 'account' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <User className="text-blue-400" size={24} />
+              <div>
+                <h2 className="text-xl font-semibold text-white">Account Settings</h2>
+                <p className="text-gray-400">Manage your account preferences and authentication</p>
+              </div>
+            </div>
+
+            {/* Authentication Status */}
+            <div className="bg-gray-700/50 rounded-lg p-4">
+              <div className="flex items-center gap-3 mb-3">
+                <Shield className="text-yellow-400" size={20} />
+                <span className="text-lg font-medium text-white">Authentication Status</span>
+              </div>
+              
+              {isSupabaseConfigured ? (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-green-400">
+                    <Check size={16} />
+                    <span>Supabase authentication is configured</span>
+                  </div>
+                  {user && (
+                    <div className="text-gray-400">
+                      Logged in as: {user.email}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-yellow-400">
+                    <AlertCircle size={16} />
+                    <span>Demo mode - Authentication disabled</span>
+                  </div>
+                  <div className="text-gray-400">
+                    Add Supabase credentials to enable full authentication
+                  </div>
                 </div>
               )}
             </div>
-          )}
 
-          {/* Account Settings */}
-          {activeTab === 'account' && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <User className="text-blue-400" size={24} />
+            {/* Account Information */}
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold text-white">Account Information</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h2 className="text-xl font-semibold text-white">Account Settings</h2>
-                  <p className="text-gray-400">Manage your account preferences and authentication</p>
-                </div>
-              </div>
-
-              {/* Authentication Status */}
-              <div className="bg-gray-700/50 rounded-lg p-4">
-                <div className="flex items-center gap-3 mb-3">
-                  <Shield className="text-yellow-400" size={20} />
-                  <span className="text-lg font-medium text-white">Authentication Status</span>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={user?.email || 'demo@coldscale.com'}
+                    disabled
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400 cursor-not-allowed"
+                  />
                 </div>
                 
-                {isSupabaseConfigured ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-green-400">
-                      <Check size={16} />
-                      <span>Supabase authentication is configured</span>
-                    </div>
-                    {user && (
-                      <div className="text-gray-400">
-                        Logged in as: {user.email}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-yellow-400">
-                      <AlertCircle size={16} />
-                      <span>Demo mode - Authentication disabled</span>
-                    </div>
-                    <div className="text-gray-400">
-                      Add Supabase credentials to enable full authentication
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Account Information */}
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold text-white">Account Information</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Email Address
-                    </label>
-                    <input
-                      type="email"
-                      value={user?.email || 'demo@coldscale.com'}
-                      disabled
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400 cursor-not-allowed"
-                    />
-                  </div>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Account Type
-                    </label>
-                    <input
-                      type="text"
-                      value={isSupabaseConfigured ? 'Authenticated' : 'Demo'}
-                      disabled
-                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400 cursor-not-allowed"
-                    />
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-white mb-2">
+                    Account Type
+                  </label>
+                  <input
+                    type="text"
+                    value={isSupabaseConfigured ? 'Authenticated' : 'Demo'}
+                    disabled
+                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-gray-400 cursor-not-allowed"
+                  />
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Theme Settings */}
-          {activeTab === 'theme' && (
+        {/* Data Management */}
+        {activeTab === 'data' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3 mb-6">
+              <Server className="text-green-400" size={24} />
+              <div>
+                <h2 className="text-xl font-semibold text-white">Data Management</h2>
+                <p className="text-gray-400">Export, import, and manage your application data</p>
+              </div>
+            </div>
+
             <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Palette className="text-purple-400" size={24} />
-                <div>
-                  <h2 className="text-xl font-semibold text-white">Theme Settings</h2>
-                  <p className="text-gray-400">Customize the appearance of your application</p>
-                </div>
+              {/* Export Data */}
+              <div className="bg-gray-700/50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-white mb-3">Export Data</h3>
+                <p className="text-gray-400 mb-4">
+                  Download all your campaigns, contacts, and settings as a JSON file
+                </p>
+                <button
+                  onClick={exportData}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  <Download size={16} />
+                  Export All Data
+                </button>
               </div>
 
-              <div className="space-y-6">
-                {/* Theme Mode */}
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">
-                    Theme Mode
-                  </label>
-                  <select
-                    value={themeSettings.mode}
-                    onChange={(e) => setThemeSettings(prev => ({ ...prev, mode: e.target.value as 'dark' | 'light' }))}
-                    className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                  >
-                    <option value="dark">Dark</option>
-                    <option value="light">Light (Coming Soon)</option>
-                  </select>
-                </div>
-
-                {/* Color Settings */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Primary Color
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={themeSettings.primaryColor}
-                        onChange={(e) => setThemeSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
-                        className="w-12 h-10 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={themeSettings.primaryColor}
-                        onChange={(e) => setThemeSettings(prev => ({ ...prev, primaryColor: e.target.value }))}
-                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Accent Color
-                    </label>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="color"
-                        value={themeSettings.accentColor}
-                        onChange={(e) => setThemeSettings(prev => ({ ...prev, accentColor: e.target.value }))}
-                        className="w-12 h-10 bg-gray-700 border border-gray-600 rounded-lg cursor-pointer"
-                      />
-                      <input
-                        type="text"
-                        value={themeSettings.accentColor}
-                        onChange={(e) => setThemeSettings(prev => ({ ...prev, accentColor: e.target.value }))}
-                        className="flex-1 px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-teal-500"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Animation Settings */}
-                <div className="flex items-center gap-3">
+              {/* Import Data */}
+              <div className="bg-gray-700/50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-white mb-3">Import Data</h3>
+                <p className="text-gray-400 mb-4">
+                  Import previously exported data or migrate from another installation
+                </p>
+                <label className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer">
+                  <Upload size={16} />
+                  Import Data
                   <input
-                    type="checkbox"
-                    id="animations"
-                    checked={themeSettings.animation}
-                    onChange={(e) => setThemeSettings(prev => ({ ...prev, animation: e.target.checked }))}
-                    className="w-4 h-4 text-teal-600 rounded focus:ring-teal-500"
+                    type="file"
+                    accept=".json"
+                    onChange={importData}
+                    className="hidden"
                   />
-                  <label htmlFor="animations" className="text-white">
-                    Enable animations and transitions
-                  </label>
-                </div>
+                </label>
+              </div>
 
-                {/* Save Button */}
+              {/* Clear Data */}
+              <div className="bg-gray-700/50 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-white mb-3">Clear All Data</h3>
+                <p className="text-gray-400 mb-4">
+                  Permanently delete all campaigns, contacts, and settings
+                </p>
                 <button
-                  onClick={saveThemeSettings}
-                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 text-white rounded-lg hover:bg-teal-700 transition-colors"
+                  onClick={clearAllData}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
                 >
-                  <Save size={16} />
-                  Save Theme Settings
+                  <Trash2 size={16} />
+                  Clear All Data
                 </button>
               </div>
             </div>
-          )}
+          </div>
+        )}
 
-          {/* Data Management */}
-          {activeTab === 'data' && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 mb-6">
-                <Server className="text-green-400" size={24} />
-                <div>
-                  <h2 className="text-xl font-semibold text-white">Data Management</h2>
-                  <p className="text-gray-400">Export, import, and manage your application data</p>
-                </div>
-              </div>
-
-              <div className="space-y-6">
-                {/* Export Data */}
-                <div className="bg-gray-700/50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-white mb-3">Export Data</h3>
-                  <p className="text-gray-400 mb-4">
-                    Download all your campaigns, contacts, and settings as a JSON file
-                  </p>
-                  <button
-                    onClick={exportData}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    <Download size={16} />
-                    Export All Data
-                  </button>
-                </div>
-
-                {/* Import Data */}
-                <div className="bg-gray-700/50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-white mb-3">Import Data</h3>
-                  <p className="text-gray-400 mb-4">
-                    Import previously exported data or migrate from another installation
-                  </p>
-                  <label className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors cursor-pointer">
-                    <Upload size={16} />
-                    Import Data
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={importData}
-                      className="hidden"
-                    />
-                  </label>
-                </div>
-
-                {/* Clear Data */}
-                <div className="bg-gray-700/50 rounded-lg p-4">
-                  <h3 className="text-lg font-semibold text-white mb-3">Clear All Data</h3>
-                  <p className="text-gray-400 mb-4">
-                    Permanently delete all campaigns, contacts, and settings
-                  </p>
-                  <button
-                    onClick={clearAllData}
-                    className="flex items-center gap-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    <Trash2 size={16} />
-                    Clear All Data
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Save Result */}
-          {saveResult && (
-            <div className={`flex items-center gap-2 p-3 rounded-lg mt-6 ${
-              saveResult.success ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
-            }`}>
-              {saveResult.success ? <Check size={16} /> : <X size={16} />}
-              {saveResult.message}
-            </div>
-          )}
-        </div>
+        {/* Save Result */}
+        {saveResult && (
+          <div className={`flex items-center gap-2 p-3 rounded-lg mt-6 ${
+            saveResult.success ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+          }`}>
+            {saveResult.success ? <Check size={16} /> : <X size={16} />}
+            {saveResult.message}
+          </div>
+        )}
       </div>
     </div>
   )

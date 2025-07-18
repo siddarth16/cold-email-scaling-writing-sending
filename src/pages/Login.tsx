@@ -44,8 +44,8 @@ export function Login() {
           className="neo-card p-8"
         >
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-500 to-primary-600 rounded-lg flex items-center justify-center mx-auto mb-4">
-              <Mail size={24} className="text-white" />
+            <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-primary-600 rounded-xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-primary-500/25">
+              <Mail size={28} className="text-white" />
             </div>
             <h1 className="text-2xl font-bold text-white mb-2">Welcome Back</h1>
             <p className="text-white/70">Sign in to your ColdScale account</p>
@@ -53,34 +53,38 @@ export function Login() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label className="block text-white/80 text-sm font-medium mb-2">
+              <label className="block text-white/80 text-sm font-medium mb-3">
                 Email Address
               </label>
               <div className="relative">
-                <Mail size={20} className="absolute left-3 top-3 text-white/40" />
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  <Mail size={18} className="text-white/40" />
+                </div>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="neo-input pl-10"
+                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:border-primary-500/50 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
                   required
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-white/80 text-sm font-medium mb-2">
+              <label className="block text-white/80 text-sm font-medium mb-3">
                 Password
               </label>
               <div className="relative">
-                <Lock size={20} className="absolute left-3 top-3 text-white/40" />
+                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                  <Lock size={18} className="text-white/40" />
+                </div>
                 <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Enter your password"
-                  className="neo-input pl-10"
+                  className="w-full pl-12 pr-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white placeholder-white/40 focus:border-primary-500/50 focus:outline-none focus:ring-2 focus:ring-primary-500/20 transition-all duration-200"
                   required
                 />
               </div>
@@ -89,7 +93,7 @@ export function Login() {
             <button
               type="submit"
               disabled={loading}
-              className="neo-button w-full group flex items-center justify-center gap-2"
+              className="neo-button w-full group flex items-center justify-center gap-2 mt-8"
             >
               {loading ? (
                 <LoadingSpinner />
@@ -102,10 +106,10 @@ export function Login() {
             </button>
           </form>
 
-          <div className="mt-6 text-center">
+          <div className="mt-8 text-center">
             <p className="text-white/70">
               Don't have an account?{' '}
-              <Link to="/register" className="text-primary-400 hover:text-primary-300 transition-colors">
+              <Link to="/register" className="text-primary-400 hover:text-primary-300 transition-colors font-medium">
                 Sign up
               </Link>
             </p>

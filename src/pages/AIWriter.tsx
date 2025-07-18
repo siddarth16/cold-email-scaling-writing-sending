@@ -13,11 +13,14 @@ import {
   MessageCircle,
   Clock,
   PenTool,
-  ChevronDown
+  ChevronDown,
+  BookOpen,
+  X
 } from 'lucide-react'
 import { useAI, EmailPrompt } from '../lib/ai'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { toast } from 'react-hot-toast'
+import { useTemplates } from '../lib/templates'
 
 // Custom Dropdown Component
 function CustomDropdown({ 
@@ -51,7 +54,7 @@ function CustomDropdown({
       </button>
       
       {isOpen && (
-        <div className="absolute z-50 w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/10 
+        <div className="absolute z-[100] w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/10 
                       rounded-lg shadow-xl max-h-60 overflow-auto">
           {options.map((option) => (
             <button
@@ -78,9 +81,14 @@ function CustomDropdown({
 
 export function AIWriter() {
   const ai = useAI()
+  const templateManager = useTemplates()
   const [isGenerating, setIsGenerating] = useState(false)
   const [generatedEmail, setGeneratedEmail] = useState('')
   const [isInitializing, setIsInitializing] = useState(false)
+  const [showSaveTemplate, setShowSaveTemplate] = useState(false)
+  const [templateName, setTemplateName] = useState('')
+  const [templateCategory, setTemplateCategory] = useState('')
+  const [templateTags, setTemplateTags] = useState('')
   
   const [prompt, setPrompt] = useState<EmailPrompt>({
     product: '',
@@ -156,9 +164,48 @@ export function AIWriter() {
     toast.success('Email copied to clipboard!')
   }
 
-  const saveTemplate = () => {
-    // TODO: Implement save functionality
-    toast.success('Template saved!')
+  const regenerateEmail = () => {
+    if (!prompt.product || !prompt.audience || !prompt.objective || !prompt.cta) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+    handleGenerate()
+  }
+
+  const saveAsTemplate = () => {
+    if (!generatedEmail) {
+      toast.error('No email to save')
+      return
+    }
+
+    if (!templateName.trim()) {
+      toast.error('Please enter a template name')
+      return
+    }
+
+    // Parse subject and body from generated email
+    const lines = generatedEmail.split('\n')
+    const subjectLine = lines.find(line => line.startsWith('Subject:'))
+    const subject = subjectLine ? subjectLine.replace('Subject:', '').trim() : 'Generated Email'
+    const bodyStartIndex = lines.findIndex(line => line.startsWith('Subject:')) + 1
+    const body = lines.slice(bodyStartIndex).join('\n').trim()
+
+    const tags = templateTags.split(',').map(tag => tag.trim()).filter(tag => tag)
+
+    templateManager.createTemplate({
+      name: templateName,
+      subject,
+      body,
+      category: templateCategory || prompt.template,
+      tags: [...tags, 'ai-generated', prompt.tone, prompt.length],
+      source: 'ai'
+    })
+
+    toast.success('Template saved successfully!')
+    setShowSaveTemplate(false)
+    setTemplateName('')
+    setTemplateCategory('')
+    setTemplateTags('')
   }
 
   return (
@@ -171,28 +218,25 @@ export function AIWriter() {
           </h1>
           <p className="text-white/70 mt-1">Generate compelling cold emails with AI</p>
         </div>
-        {isInitializing && (
-          <div className="flex items-center gap-2 px-4 py-2 bg-primary-500/20 rounded-lg border border-primary-500/30">
-            <LoadingSpinner />
-            <span className="text-primary-400 text-sm">Initializing AI...</span>
+        {ai.isInitialized && (
+          <div className="text-sm text-green-400 flex items-center gap-2">
+            <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
+            AI Initialized
           </div>
         )}
       </div>
 
-      <div className="grid lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         {/* Input Panel */}
         <div className="space-y-6">
+          {/* Email Parameters */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="neo-card p-6"
           >
-            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <Settings size={20} />
-              Email Parameters
-            </h2>
-
+            <h3 className="text-lg font-semibold text-white mb-4">Email Parameters</h3>
             <div className="space-y-4">
               <div>
                 <label className="block text-white/80 text-sm font-medium mb-2">
@@ -202,7 +246,7 @@ export function AIWriter() {
                   type="text"
                   value={prompt.product}
                   onChange={(e) => setPrompt({ ...prompt, product: e.target.value })}
-                  placeholder="e.g., Marketing automation software"
+                  placeholder="e.g., CRM Software, Marketing Services"
                   className="neo-input"
                 />
               </div>
@@ -277,14 +321,14 @@ export function AIWriter() {
             </div>
           </motion.div>
 
-          {/* Tone and Length */}
+          {/* Tone and Length - Fixed Layout */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.2 }}
             className="neo-card p-6"
           >
-            <div className="grid grid-cols-2 gap-6">
+            <div className="grid grid-cols-2 gap-6 mb-6">
               <div>
                 <label className="block text-white/80 text-sm font-medium mb-3">Tone</label>
                 <CustomDropdown
@@ -305,31 +349,31 @@ export function AIWriter() {
                 />
               </div>
             </div>
-          </motion.div>
 
-          {/* Generate Button */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.3 }}
-          >
+            {/* Generate Button - Moved inside this card to prevent layout issues */}
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || isInitializing}
+              disabled={isGenerating || isInitializing || !prompt.product || !prompt.audience || !prompt.objective || !prompt.cta}
               className="neo-button w-full group flex items-center justify-center gap-2 py-4"
             >
               {isGenerating ? (
                 <>
                   <LoadingSpinner />
-                  Generating...
+                  Generating AI Email...
                 </>
               ) : (
                 <>
                   <Sparkles size={20} className="group-hover:rotate-12 transition-transform" />
-                  Generate Email
+                  Generate Email with AI
                 </>
               )}
             </button>
+
+            {(!prompt.product || !prompt.audience || !prompt.objective || !prompt.cta) && (
+              <p className="text-yellow-400 text-sm mt-2 text-center">
+                Please fill in all required fields to generate email
+              </p>
+            )}
           </motion.div>
         </div>
 
@@ -350,25 +394,24 @@ export function AIWriter() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={copyToClipboard}
-                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all"
+                    className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
                     title="Copy to clipboard"
                   >
-                    <Copy size={16} />
+                    <Copy size={18} />
                   </button>
                   <button
-                    onClick={handleGenerate}
-                    disabled={isGenerating}
-                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all"
-                    title="Regenerate"
+                    onClick={regenerateEmail}
+                    className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                    title="Regenerate email"
                   >
-                    <RefreshCw size={16} />
+                    <RefreshCw size={18} />
                   </button>
                   <button
-                    onClick={saveTemplate}
-                    className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-all"
-                    title="Save template"
+                    onClick={() => setShowSaveTemplate(true)}
+                    className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+                    title="Save as template"
                   >
-                    <Save size={16} />
+                    <BookOpen size={18} />
                   </button>
                 </div>
               )}
@@ -376,31 +419,126 @@ export function AIWriter() {
 
             {generatedEmail ? (
               <div className="space-y-4">
-                <textarea
-                  value={generatedEmail}
-                  onChange={(e) => setGeneratedEmail(e.target.value)}
-                  className="neo-input min-h-[400px] font-mono text-sm"
-                  placeholder="Generated email will appear here..."
-                />
-                <div className="flex items-center gap-2 text-sm text-white/60">
-                  <Clock size={14} />
-                  <span>
-                    {generatedEmail.split(' ').length} words • 
-                    {Math.ceil(generatedEmail.length / 500)} min read
-                  </span>
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <pre className="text-white/90 whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                    {generatedEmail}
+                  </pre>
+                </div>
+                
+                <div className="flex items-center gap-4 pt-4 border-t border-white/10">
+                  <button
+                    onClick={copyToClipboard}
+                    className="neo-button flex items-center gap-2"
+                  >
+                    <Copy size={16} />
+                    Copy Email
+                  </button>
+                  <button
+                    onClick={() => setShowSaveTemplate(true)}
+                    className="px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5 transition-all flex items-center gap-2"
+                  >
+                    <BookOpen size={16} />
+                    Save as Template
+                  </button>
+                  <button
+                    onClick={regenerateEmail}
+                    className="px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5 transition-all flex items-center gap-2"
+                  >
+                    <RefreshCw size={16} />
+                    Regenerate
+                  </button>
                 </div>
               </div>
             ) : (
-              <div className="min-h-[400px] flex items-center justify-center text-white/50">
-                <div className="text-center">
-                  <Mail size={48} className="mx-auto mb-4 opacity-50" />
-                  <p>Fill in the parameters and click "Generate Email" to create your cold email</p>
-                </div>
+              <div className="text-center py-12">
+                <Mail size={48} className="mx-auto text-white/20 mb-4" />
+                <p className="text-white/60 mb-2">No email generated yet</p>
+                <p className="text-white/40 text-sm">Fill in the parameters and click "Generate Email with AI" to get started</p>
               </div>
             )}
           </motion.div>
         </div>
       </div>
+
+      {/* Save Template Modal */}
+      {showSaveTemplate && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="bg-gray-800/95 backdrop-blur-md border border-white/10 rounded-xl p-6 w-full max-w-md"
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-white">Save as Template</h3>
+              <button
+                onClick={() => setShowSaveTemplate(false)}
+                className="text-white/60 hover:text-white transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Template Name *
+                </label>
+                <input
+                  type="text"
+                  value={templateName}
+                  onChange={(e) => setTemplateName(e.target.value)}
+                  placeholder="e.g., B2B Cold Outreach v1"
+                  className="neo-input"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Category
+                </label>
+                <input
+                  type="text"
+                  value={templateCategory}
+                  onChange={(e) => setTemplateCategory(e.target.value)}
+                  placeholder={`e.g., ${prompt.template} (default)`}
+                  className="neo-input"
+                />
+              </div>
+
+              <div>
+                <label className="block text-white/70 text-sm font-medium mb-2">
+                  Tags (comma-separated)
+                </label>
+                <input
+                  type="text"
+                  value={templateTags}
+                  onChange={(e) => setTemplateTags(e.target.value)}
+                  placeholder="e.g., outreach, professional, follow-up"
+                  className="neo-input"
+                />
+              </div>
+
+              <div className="flex items-center gap-3 pt-4">
+                <button
+                  onClick={saveAsTemplate}
+                  disabled={!templateName.trim()}
+                  className="neo-button flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Save Template
+                </button>
+                <button
+                  onClick={() => setShowSaveTemplate(false)}
+                  className="px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5 transition-all"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 } 
