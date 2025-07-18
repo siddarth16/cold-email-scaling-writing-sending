@@ -15,9 +15,10 @@ import {
   PenTool,
   ChevronDown,
   BookOpen,
-  X
+  X,
+  Check
 } from 'lucide-react'
-import { useAI, EmailPrompt } from '../lib/ai'
+import { useAI, EmailPrompt, EmailGenerationResult } from '../lib/ai'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { toast } from 'react-hot-toast'
 import { useTemplates } from '../lib/templates'
@@ -79,11 +80,70 @@ function CustomDropdown({
   )
 }
 
+// Subject Dropdown Component
+function SubjectDropdown({ 
+  subjects, 
+  selectedIndex, 
+  onSelect 
+}: {
+  subjects: string[]
+  selectedIndex: number
+  onSelect: (index: number) => void
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white/90 
+                 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500 
+                 transition-all duration-200 flex items-center justify-between text-left"
+      >
+        <span className="truncate pr-2">
+          {subjects[selectedIndex] || 'Select a subject line'}
+        </span>
+        <ChevronDown 
+          size={16} 
+          className={`flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute z-[100] w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/10 
+                      rounded-lg shadow-xl max-h-60 overflow-auto">
+          {subjects.map((subject, index) => (
+            <button
+              key={index}
+              type="button"
+              onClick={() => {
+                onSelect(index)
+                setIsOpen(false)
+              }}
+              className="w-full px-4 py-3 text-left text-white/90 hover:bg-white/10 
+                       transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg
+                       flex items-center justify-between"
+            >
+              <span className="truncate pr-2">{subject}</span>
+              {selectedIndex === index && (
+                <Check size={16} className="text-primary-400 flex-shrink-0" />
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export function AIWriter() {
   const ai = useAI()
   const templateManager = useTemplates()
   const [isGenerating, setIsGenerating] = useState(false)
-  const [generatedEmail, setGeneratedEmail] = useState('')
+  const [generationResult, setGenerationResult] = useState<EmailGenerationResult | null>(null)
+  const [selectedSubjectIndex, setSelectedSubjectIndex] = useState(0)
+  const [selectedBodyIndex, setSelectedBodyIndex] = useState(0)
   const [isInitializing, setIsInitializing] = useState(false)
   const [showSaveTemplate, setShowSaveTemplate] = useState(false)
   const [templateName, setTemplateName] = useState('')
@@ -128,11 +188,11 @@ export function AIWriter() {
       setIsInitializing(true)
       ai.initialize()
         .then(() => {
-          toast.success('AI model initialized successfully!')
+          toast.success('AI service initialized successfully!')
         })
         .catch((error) => {
           console.error('AI initialization failed:', error)
-          toast.error('AI model failed to initialize, using fallback')
+          toast.error('AI service failed to initialize')
         })
         .finally(() => {
           setIsInitializing(false)
@@ -149,8 +209,21 @@ export function AIWriter() {
     setIsGenerating(true)
     try {
       const result = await ai.generateEmail(prompt)
-      setGeneratedEmail(result)
-      toast.success('Email generated successfully!')
+      
+      if (result.error) {
+        toast.error(result.error)
+        return
+      }
+      
+      if (result.subjects.length === 0 || result.bodies.length === 0) {
+        toast.error('No email options generated. Please try again.')
+        return
+      }
+
+      setGenerationResult(result)
+      setSelectedSubjectIndex(0)
+      setSelectedBodyIndex(0)
+      toast.success(`Generated ${result.subjects.length} subject options and ${result.bodies.length} body options!`)
     } catch (error) {
       console.error('Generation failed:', error)
       toast.error('Failed to generate email. Please try again.')
@@ -159,8 +232,20 @@ export function AIWriter() {
     }
   }
 
+  const getCurrentEmail = () => {
+    if (!generationResult || !generationResult.subjects[selectedSubjectIndex] || !generationResult.bodies[selectedBodyIndex]) {
+      return ''
+    }
+    return `Subject: ${generationResult.subjects[selectedSubjectIndex]}\n\n${generationResult.bodies[selectedBodyIndex]}`
+  }
+
   const copyToClipboard = () => {
-    navigator.clipboard.writeText(generatedEmail)
+    const email = getCurrentEmail()
+    if (!email) {
+      toast.error('No email to copy')
+      return
+    }
+    navigator.clipboard.writeText(email)
     toast.success('Email copied to clipboard!')
   }
 
@@ -173,7 +258,7 @@ export function AIWriter() {
   }
 
   const saveAsTemplate = () => {
-    if (!generatedEmail) {
+    if (!generationResult) {
       toast.error('No email to save')
       return
     }
@@ -183,12 +268,8 @@ export function AIWriter() {
       return
     }
 
-    // Parse subject and body from generated email
-    const lines = generatedEmail.split('\n')
-    const subjectLine = lines.find(line => line.startsWith('Subject:'))
-    const subject = subjectLine ? subjectLine.replace('Subject:', '').trim() : 'Generated Email'
-    const bodyStartIndex = lines.findIndex(line => line.startsWith('Subject:')) + 1
-    const body = lines.slice(bodyStartIndex).join('\n').trim()
+    const subject = generationResult.subjects[selectedSubjectIndex]
+    const body = generationResult.bodies[selectedBodyIndex]
 
     const tags = templateTags.split(',').map(tag => tag.trim()).filter(tag => tag)
 
@@ -216,12 +297,12 @@ export function AIWriter() {
             <Sparkles className="text-primary-400" />
             AI Email Writer
           </h1>
-          <p className="text-white/70 mt-1">Generate compelling cold emails with AI</p>
+          <p className="text-white/70 mt-1">Generate compelling cold emails with Gemini AI</p>
         </div>
         {ai.isInitialized && (
           <div className="text-sm text-green-400 flex items-center gap-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            AI Initialized
+            Gemini AI Ready
           </div>
         )}
       </div>
@@ -321,7 +402,7 @@ export function AIWriter() {
             </div>
           </motion.div>
 
-          {/* Tone and Length - Fixed Layout */}
+          {/* Tone and Length */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -350,7 +431,7 @@ export function AIWriter() {
               </div>
             </div>
 
-            {/* Generate Button - Moved inside this card to prevent layout issues */}
+            {/* Generate Button */}
             <button
               onClick={handleGenerate}
               disabled={isGenerating || isInitializing || !prompt.product || !prompt.audience || !prompt.objective || !prompt.cta}
@@ -359,19 +440,19 @@ export function AIWriter() {
               {isGenerating ? (
                 <>
                   <LoadingSpinner />
-                  Generating AI Email...
+                  Generating with Gemini AI...
                 </>
               ) : (
                 <>
                   <Sparkles size={20} className="group-hover:rotate-12 transition-transform" />
-                  Generate Email with AI
+                  Generate 5 Email Options
                 </>
               )}
             </button>
 
             {(!prompt.product || !prompt.audience || !prompt.objective || !prompt.cta) && (
               <p className="text-yellow-400 text-sm mt-2 text-center">
-                Please fill in all required fields to generate email
+                Please fill in all required fields to generate emails
               </p>
             )}
           </motion.div>
@@ -388,21 +469,21 @@ export function AIWriter() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold text-white flex items-center gap-2">
                 <Mail size={20} />
-                Generated Email
+                Generated Email Options
               </h2>
-              {generatedEmail && (
+              {generationResult && (
                 <div className="flex items-center gap-2">
                   <button
                     onClick={copyToClipboard}
                     className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-                    title="Copy to clipboard"
+                    title="Copy selected email"
                   >
                     <Copy size={18} />
                   </button>
                   <button
                     onClick={regenerateEmail}
                     className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
-                    title="Regenerate email"
+                    title="Generate new options"
                   >
                     <RefreshCw size={18} />
                   </button>
@@ -417,21 +498,59 @@ export function AIWriter() {
               )}
             </div>
 
-            {generatedEmail ? (
-              <div className="space-y-4">
-                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                  <pre className="text-white/90 whitespace-pre-wrap font-mono text-sm leading-relaxed">
-                    {generatedEmail}
-                  </pre>
+            {generationResult ? (
+              <div className="space-y-6">
+                {/* Subject Line Selection */}
+                <div>
+                  <label className="block text-white/80 text-sm font-medium mb-3">
+                    Subject Line Options ({generationResult.subjects.length})
+                  </label>
+                  <SubjectDropdown
+                    subjects={generationResult.subjects}
+                    selectedIndex={selectedSubjectIndex}
+                    onSelect={setSelectedSubjectIndex}
+                  />
                 </div>
-                
+
+                {/* Body Content Tabs */}
+                <div>
+                  <label className="block text-white/80 text-sm font-medium mb-3">
+                    Email Body Options ({generationResult.bodies.length})
+                  </label>
+                  
+                  {/* Tab Headers */}
+                  <div className="flex gap-2 mb-4 overflow-x-auto">
+                    {generationResult.bodies.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setSelectedBodyIndex(index)}
+                        className={`px-4 py-2 rounded-lg border transition-all whitespace-nowrap ${
+                          selectedBodyIndex === index
+                            ? 'border-primary-500 bg-primary-500/20 text-primary-400'
+                            : 'border-white/10 bg-white/5 text-white/70 hover:border-white/20'
+                        }`}
+                      >
+                        Option {index + 1}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Tab Content */}
+                  <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                    <pre className="text-white/90 whitespace-pre-wrap font-mono text-sm leading-relaxed">
+                      {generationResult.bodies[selectedBodyIndex]}
+                    </pre>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
                 <div className="flex items-center gap-4 pt-4 border-t border-white/10">
                   <button
                     onClick={copyToClipboard}
                     className="neo-button flex items-center gap-2"
                   >
                     <Copy size={16} />
-                    Copy Email
+                    Copy Selected Email
                   </button>
                   <button
                     onClick={() => setShowSaveTemplate(true)}
@@ -445,15 +564,24 @@ export function AIWriter() {
                     className="px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5 transition-all flex items-center gap-2"
                   >
                     <RefreshCw size={16} />
-                    Regenerate
+                    Generate New Options
                   </button>
+                </div>
+
+                {/* Selection Summary */}
+                <div className="bg-white/5 rounded-lg p-4 border border-white/10">
+                  <h4 className="text-white font-medium mb-2">Selected Combination:</h4>
+                  <div className="text-sm text-white/70">
+                    <p><strong>Subject:</strong> {generationResult.subjects[selectedSubjectIndex]}</p>
+                    <p><strong>Body:</strong> Option {selectedBodyIndex + 1}</p>
+                  </div>
                 </div>
               </div>
             ) : (
               <div className="text-center py-12">
                 <Mail size={48} className="mx-auto text-white/20 mb-4" />
-                <p className="text-white/60 mb-2">No email generated yet</p>
-                <p className="text-white/40 text-sm">Fill in the parameters and click "Generate Email with AI" to get started</p>
+                <p className="text-white/60 mb-2">No emails generated yet</p>
+                <p className="text-white/40 text-sm">Fill in the parameters and click "Generate 5 Email Options" to get started</p>
               </div>
             )}
           </motion.div>
@@ -519,6 +647,18 @@ export function AIWriter() {
                   className="neo-input"
                 />
               </div>
+
+              {generationResult && (
+                <div className="bg-white/5 rounded-lg p-3 border border-white/10">
+                  <p className="text-white/70 text-sm mb-1">Will save:</p>
+                  <p className="text-white text-sm">
+                    <strong>Subject:</strong> {generationResult.subjects[selectedSubjectIndex]}
+                  </p>
+                  <p className="text-white text-sm">
+                    <strong>Body:</strong> Option {selectedBodyIndex + 1}
+                  </p>
+                </div>
+              )}
 
               <div className="flex items-center gap-3 pt-4">
                 <button
