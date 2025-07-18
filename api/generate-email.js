@@ -1,8 +1,9 @@
-export default function handler(req, res) {
+export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Origin', '*')
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
+  
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*')
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
     return res.status(200).end()
   }
   
@@ -10,22 +11,173 @@ export default function handler(req, res) {
     return res.status(405).json({ subjects: [], bodies: [], error: 'Method not allowed' })
   }
 
-  // Return mock data for now to test if endpoint works
-  const mockSubjects = [
-    "Quick question about your CRM needs",
-    "Helping small businesses like yours scale", 
-    "15-minute demo that could save you hours",
-    "Transform your customer management today",
-    "Your competitors are already using this"
-  ]
+  try {
+    const prompt = req.body
+    console.log('Received prompt:', prompt)
 
-  const mockBodies = [
-    "Hi {{firstName}},\n\nI noticed {{company}} might benefit from our CRM software. We help small business owners like you streamline customer management.\n\nBook a 15 minute call\n\nWould you be open to a quick demo?\n\nBest regards,\n[Your Name]",
-    "Hello {{firstName}},\n\nI came across {{company}} and thought you might be interested in how we help small business owners schedule demos more effectively.\n\nBook a 15 minute call\n\nHappy to show you how it works.\n\nThanks,\n[Your Name]", 
-    "Hi {{firstName}},\n\nQuick question about {{company}}'s customer management. We recently helped a similar business improve their workflow significantly.\n\nBook a 15 minute call\n\nInterested in learning more?\n\nBest,\n[Your Name]",
-    "Hello {{firstName}},\n\nI hope this finds you well. I'm reaching out because our CRM software might be valuable for {{company}}.\n\nBook a 15 minute call\n\nWould you have 15 minutes for a quick call?\n\nRegards,\n[Your Name]",
-    "Hi {{firstName}},\n\nI noticed {{company}} is growing and thought you might find our CRM solution interesting for small business owners.\n\nBook a 15 minute call\n\nHappy to share more details if relevant.\n\nBest regards,\n[Your Name]"
-  ]
+    // Validate required fields
+    if (!prompt?.product || !prompt?.audience || !prompt?.objective || !prompt?.cta) {
+      return res.status(400).json({ 
+        subjects: [], 
+        bodies: [], 
+        error: 'Missing required fields' 
+      })
+    }
 
-  return res.status(200).json({ subjects: mockSubjects, bodies: mockBodies })
+    // Check API key
+    const apiKey = process.env.GEMINI_API_KEY
+    if (!apiKey) {
+      return res.status(500).json({ 
+        subjects: [], 
+        bodies: [], 
+        error: 'AI API key not configured' 
+      })
+    }
+
+    // Create prompt for Gemini
+    const geminiPrompt = `You are an expert cold email copywriter. Generate 5 unique subject line options and 5 unique email body options for a cold email campaign.
+
+CAMPAIGN DETAILS:
+- Product/Service: ${prompt.product}
+- Target Audience: ${prompt.audience}
+- Objective: ${prompt.objective}
+- Tone: ${prompt.tone}
+- Call to Action: ${prompt.cta}
+- Email Length: ${prompt.length}
+
+REQUIREMENTS:
+1. Create 5 completely different and creative subject lines
+2. Write 5 completely different email bodies, each with unique approaches
+3. Use personalization tokens like {{firstName}}, {{company}}, {{position}} where appropriate
+4. Match the ${prompt.tone} tone throughout
+5. Include the call to action: ${prompt.cta}
+6. Make emails approximately ${prompt.length} length
+7. Each email should feel authentic and personal, not templated
+
+OUTPUT FORMAT - Follow this structure exactly:
+
+<Subject> [Subject 1]; [Subject 2]; [Subject 3]; [Subject 4]; [Subject 5] <Subject>
+
+<Body 1>
+[Write complete first email here]
+<Body 1>
+
+<Body 2>
+[Write complete second email here]
+<Body 2>
+
+<Body 3>
+[Write complete third email here]
+<Body 3>
+
+<Body 4>
+[Write complete fourth email here]
+<Body 4>
+
+<Body 5>
+[Write complete fifth email here]
+<Body 5>
+
+Write compelling, personalized cold emails that will get responses from ${prompt.audience} prospects.`
+
+    console.log('Calling Gemini API...')
+    
+    // Call Gemini API
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        contents: [{
+          parts: [{
+            text: geminiPrompt
+          }]
+        }],
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 2048,
+        }
+      })
+    })
+
+    console.log('Gemini response status:', response.status)
+
+    if (!response.ok) {
+      if (response.status === 429) {
+        return res.status(429).json({ 
+          subjects: [], 
+          bodies: [], 
+          error: 'Limit reached, try after 2 minutes' 
+        })
+      }
+      
+      return res.status(500).json({ 
+        subjects: [], 
+        bodies: [], 
+        error: `API error: ${response.status}` 
+      })
+    }
+
+    const data = await response.json()
+    
+    if (!data.candidates?.[0]?.content?.parts?.[0]?.text) {
+      return res.status(500).json({ 
+        subjects: [], 
+        bodies: [], 
+        error: 'Invalid response from AI' 
+      })
+    }
+
+    const generatedText = data.candidates[0].content.parts[0].text
+    console.log('Generated text length:', generatedText.length)
+    
+    // Parse subjects
+    const subjectMatch = generatedText.match(/<Subject>\s*(.*?)\s*<Subject>/s)
+    if (!subjectMatch) {
+      return res.status(500).json({ 
+        subjects: [], 
+        bodies: [], 
+        error: 'Failed to parse AI response' 
+      })
+    }
+    
+    const subjects = subjectMatch[1]
+      .split(';')
+      .map(s => s.trim())
+      .filter(s => s.length > 0)
+      .slice(0, 5)
+
+    // Parse bodies
+    const bodies = []
+    for (let i = 1; i <= 5; i++) {
+      const bodyRegex = new RegExp(`<Body ${i}>\\s*(.*?)\\s*<Body ${i}>`, 's')
+      const bodyMatch = generatedText.match(bodyRegex)
+      if (bodyMatch) {
+        bodies.push(bodyMatch[1].trim())
+      }
+    }
+
+    console.log('Parsed:', { subjects: subjects.length, bodies: bodies.length })
+    
+    if (subjects.length === 0 || bodies.length === 0) {
+      return res.status(500).json({ 
+        subjects: [], 
+        bodies: [], 
+        error: 'Failed to parse response' 
+      })
+    }
+
+    return res.status(200).json({ subjects, bodies })
+
+  } catch (error) {
+    console.error('Error:', error)
+    return res.status(500).json({ 
+      subjects: [], 
+      bodies: [], 
+      error: 'Internal server error' 
+    })
+  }
 } 
