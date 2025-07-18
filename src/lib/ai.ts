@@ -32,7 +32,6 @@ class GeminiAIService implements AIService {
 
   async generateEmail(prompt: EmailPrompt): Promise<EmailGenerationResult> {
     try {
-      // Call our Vercel API endpoint
       const response = await fetch('/api/generate-email', {
         method: 'POST',
         headers: {
@@ -63,7 +62,7 @@ class GeminiAIService implements AIService {
       const result = await response.json()
       return result
     } catch (error) {
-      console.error('Gemini API error:', error)
+      console.error('AI API error:', error)
       return {
         subjects: [],
         bodies: [],
