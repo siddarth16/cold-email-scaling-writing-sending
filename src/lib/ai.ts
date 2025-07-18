@@ -1,4 +1,5 @@
 export interface EmailPrompt {
+  companyName: string
   product: string
   audience: string
   objective: string

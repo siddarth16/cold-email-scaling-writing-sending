@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     console.log('Received prompt:', prompt)
 
     // Validate required fields
-    if (!prompt?.product || !prompt?.audience || !prompt?.objective || !prompt?.cta) {
+    if (!prompt?.companyName || !prompt?.product || !prompt?.audience || !prompt?.objective || !prompt?.cta) {
       return res.status(400).json({ 
         subjects: [], 
         bodies: [], 
@@ -38,6 +38,7 @@ export default async function handler(req, res) {
     const geminiPrompt = `You are an expert cold email copywriter. Generate 5 unique subject line options and 5 unique email body options for a cold email campaign.
 
 CAMPAIGN DETAILS:
+- Company/Sender: ${prompt.companyName}
 - Product/Service: ${prompt.product}
 - Target Audience: ${prompt.audience}
 - Objective: ${prompt.objective}
@@ -49,10 +50,11 @@ REQUIREMENTS:
 1. Create 5 completely different and creative subject lines
 2. Write 5 completely different email bodies, each with unique approaches
 3. Use personalization tokens like {{firstName}}, {{company}}, {{position}} where appropriate
-4. Match the ${prompt.tone} tone throughout
-5. Include the call to action: ${prompt.cta}
-6. Make emails approximately ${prompt.length} length
-7. Each email should feel authentic and personal, not templated
+4. Include the sender company name "${prompt.companyName}" naturally in the emails when relevant
+5. Match the ${prompt.tone} tone throughout
+6. Include the call to action: ${prompt.cta}
+7. Make emails approximately ${prompt.length} length
+8. Each email should feel authentic and personal, not templated
 
 OUTPUT FORMAT - Follow this structure exactly:
 
@@ -217,11 +219,11 @@ Write compelling, personalized cold emails that will get responses from ${prompt
     
     if (bodies.length === 0) {
       bodies = [
-        `Hi {{firstName}},\n\nI noticed {{company}} and thought you might be interested in ${prompt.product}. ${prompt.cta}?\n\nBest regards`,
-        `Hello {{firstName}},\n\nQuick question about {{company}}'s goals with ${prompt.audience}. ${prompt.cta}?\n\nThanks`,
-        `Hi {{firstName}},\n\nI help ${prompt.audience} with ${prompt.objective}. Worth a brief chat?\n\nBest`,
-        `Hello {{firstName}},\n\nSaw {{company}} online and thought of ${prompt.product}. ${prompt.cta}?\n\nCheers`,
-        `Hi {{firstName}},\n\n${prompt.product} has helped similar companies. Quick chat about {{company}}?\n\nBest regards`
+        `Hi {{firstName}},\n\nI'm reaching out from ${prompt.companyName}. I noticed {{company}} and thought you might be interested in ${prompt.product}. ${prompt.cta}?\n\nBest regards`,
+        `Hello {{firstName}},\n\nQuick question about {{company}}'s goals with ${prompt.audience}. I'm with ${prompt.companyName} and we help companies like yours. ${prompt.cta}?\n\nThanks`,
+        `Hi {{firstName}},\n\nI'm from ${prompt.companyName} and help ${prompt.audience} with ${prompt.objective}. Worth a brief chat?\n\nBest`,
+        `Hello {{firstName}},\n\nSaw {{company}} online and thought of our ${prompt.product} at ${prompt.companyName}. ${prompt.cta}?\n\nCheers`,
+        `Hi {{firstName}},\n\nOur ${prompt.product} at ${prompt.companyName} has helped similar companies. Quick chat about {{company}}?\n\nBest regards`
       ]
     }
 

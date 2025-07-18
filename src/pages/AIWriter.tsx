@@ -151,6 +151,7 @@ export function AIWriter() {
   const [templateTags, setTemplateTags] = useState('')
   
   const [prompt, setPrompt] = useState<EmailPrompt>({
+    companyName: '',
     product: '',
     audience: '',
     objective: '',
@@ -201,7 +202,7 @@ export function AIWriter() {
   }, [ai])
 
   const handleGenerate = async () => {
-    if (!prompt.product || !prompt.audience || !prompt.objective || !prompt.cta) {
+    if (!prompt.companyName || !prompt.product || !prompt.audience || !prompt.objective || !prompt.cta) {
       toast.error('Please fill in all required fields')
       return
     }
@@ -250,7 +251,7 @@ export function AIWriter() {
   }
 
   const regenerateEmail = () => {
-    if (!prompt.product || !prompt.audience || !prompt.objective || !prompt.cta) {
+    if (!prompt.companyName || !prompt.product || !prompt.audience || !prompt.objective || !prompt.cta) {
       toast.error('Please fill in all required fields')
       return
     }
@@ -319,6 +320,19 @@ export function AIWriter() {
           >
             <h3 className="text-lg font-semibold text-white mb-4">Email Parameters</h3>
             <div className="space-y-4">
+              <div>
+                <label className="block text-white/80 text-sm font-medium mb-2">
+                  Your Company Name *
+                </label>
+                <input
+                  type="text"
+                  value={prompt.companyName}
+                  onChange={(e) => setPrompt({ ...prompt, companyName: e.target.value })}
+                  placeholder="e.g., ColdScale, Acme Corp, Your Business Name"
+                  className="neo-input"
+                />
+              </div>
+
               <div>
                 <label className="block text-white/80 text-sm font-medium mb-2">
                   Product/Service *
@@ -434,7 +448,7 @@ export function AIWriter() {
             {/* Generate Button */}
             <button
               onClick={handleGenerate}
-              disabled={isGenerating || isInitializing || !prompt.product || !prompt.audience || !prompt.objective || !prompt.cta}
+              disabled={isGenerating || isInitializing || !prompt.companyName || !prompt.product || !prompt.audience || !prompt.objective || !prompt.cta}
               className="neo-button w-full group flex items-center justify-center gap-2 py-4"
             >
               {isGenerating ? (
@@ -450,7 +464,7 @@ export function AIWriter() {
               )}
             </button>
 
-            {(!prompt.product || !prompt.audience || !prompt.objective || !prompt.cta) && (
+            {(!prompt.companyName || !prompt.product || !prompt.audience || !prompt.objective || !prompt.cta) && (
               <p className="text-yellow-400 text-sm mt-2 text-center">
                 Please fill in all required fields to generate emails
               </p>
