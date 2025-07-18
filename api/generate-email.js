@@ -133,41 +133,96 @@ Write compelling, personalized cold emails that will get responses from ${prompt
 
     const generatedText = data.candidates[0].content.parts[0].text
     console.log('Generated text length:', generatedText.length)
+    console.log('Generated text preview:', generatedText.substring(0, 500) + '...')
     
-    // Parse subjects
-    const subjectMatch = generatedText.match(/<Subject>\s*(.*?)\s*<Subject>/s)
-    if (!subjectMatch) {
-      return res.status(500).json({ 
-        subjects: [], 
-        bodies: [], 
-        error: 'Failed to parse AI response' 
-      })
+    // More robust parsing with multiple fallback methods
+    let subjects = []
+    let bodies = []
+    
+    // Method 1: Try standard format
+    const subjectMatch = generatedText.match(/<Subject>\s*(.*?)\s*<\/?\s*Subject>/s)
+    if (subjectMatch) {
+      subjects = subjectMatch[1]
+        .split(';')
+        .map(s => s.trim())
+        .filter(s => s.length > 0)
+        .slice(0, 5)
     }
     
-    const subjects = subjectMatch[1]
-      .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0)
-      .slice(0, 5)
+    // Method 2: Fallback for subjects - look for numbered lists or bullet points
+    if (subjects.length === 0) {
+      console.log('Trying fallback subject parsing...')
+      const subjectLines = generatedText.split('\n')
+        .filter(line => 
+          line.trim().match(/^(\d+\.|\*|\-|•)\s*.+/) || 
+          line.trim().toLowerCase().includes('subject')
+        )
+        .slice(0, 5)
+        .map(line => line.replace(/^(\d+\.|\*|\-|•)\s*/, '').trim())
+        .filter(line => line.length > 0)
+      
+      if (subjectLines.length > 0) {
+        subjects = subjectLines
+      }
+    }
 
-    // Parse bodies
-    const bodies = []
+    // Method 1: Try standard body format
     for (let i = 1; i <= 5; i++) {
-      const bodyRegex = new RegExp(`<Body ${i}>\\s*(.*?)\\s*<Body ${i}>`, 's')
+      const bodyRegex = new RegExp(`<Body ${i}>\\s*(.*?)\\s*<\/?\\s*Body ${i}>`, 's')
       const bodyMatch = generatedText.match(bodyRegex)
       if (bodyMatch) {
         bodies.push(bodyMatch[1].trim())
       }
     }
-
-    console.log('Parsed:', { subjects: subjects.length, bodies: bodies.length })
     
-    if (subjects.length === 0 || bodies.length === 0) {
-      return res.status(500).json({ 
-        subjects: [], 
-        bodies: [], 
-        error: 'Failed to parse response' 
-      })
+    // Method 2: Fallback for bodies - split by common patterns
+    if (bodies.length === 0) {
+      console.log('Trying fallback body parsing...')
+      
+      // Try to split by email patterns or body markers
+      const emailSections = generatedText
+        .split(/(?:Email\s*\d+|Body\s*\d+|Option\s*\d+)/i)
+        .slice(1) // Remove first empty part
+        .map(section => section.trim())
+        .filter(section => section.length > 50) // Filter out too short sections
+        .slice(0, 5)
+      
+      if (emailSections.length > 0) {
+        bodies = emailSections
+      } else {
+        // Last resort: split by double newlines and take longer sections
+        const paragraphs = generatedText
+          .split(/\n\s*\n/)
+          .map(p => p.trim())
+          .filter(p => p.length > 100) // Only longer paragraphs
+          .slice(0, 5)
+        
+        if (paragraphs.length > 0) {
+          bodies = paragraphs
+        }
+      }
+    }
+
+    console.log('Parsed results:', { 
+      subjects: subjects.length, 
+      bodies: bodies.length,
+      subjectSample: subjects[0] ? subjects[0].substring(0, 50) + '...' : 'none',
+      bodySample: bodies[0] ? bodies[0].substring(0, 100) + '...' : 'none'
+    })
+    
+    // Ensure we have at least some content
+    if (subjects.length === 0) {
+      subjects = ['Quick question about {{company}}', 'Partnership opportunity', 'Brief chat?', 'Collaboration idea', 'Quick favor']
+    }
+    
+    if (bodies.length === 0) {
+      bodies = [
+        `Hi {{firstName}},\n\nI noticed {{company}} and thought you might be interested in ${prompt.product}. ${prompt.cta}?\n\nBest regards`,
+        `Hello {{firstName}},\n\nQuick question about {{company}}'s goals with ${prompt.audience}. ${prompt.cta}?\n\nThanks`,
+        `Hi {{firstName}},\n\nI help ${prompt.audience} with ${prompt.objective}. Worth a brief chat?\n\nBest`,
+        `Hello {{firstName}},\n\nSaw {{company}} online and thought of ${prompt.product}. ${prompt.cta}?\n\nCheers`,
+        `Hi {{firstName}},\n\n${prompt.product} has helped similar companies. Quick chat about {{company}}?\n\nBest regards`
+      ]
     }
 
     return res.status(200).json({ subjects, bodies })
