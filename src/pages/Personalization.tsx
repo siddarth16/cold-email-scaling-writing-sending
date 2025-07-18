@@ -10,7 +10,9 @@ import {
   Copy,
   Check,
   Plus,
-  X
+  X,
+  Edit2,
+  Save
 } from 'lucide-react'
 import { PersonalizationEngine, PERSONALIZATION_TOKENS } from '../lib/personalization'
 import { Contact, getFullName } from '../lib/contacts'
@@ -25,6 +27,10 @@ interface PersonalizationTemplate {
   updatedAt: string
 }
 
+interface TokenValue {
+  [key: string]: string
+}
+
 export default function Personalization() {
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
@@ -35,6 +41,9 @@ export default function Personalization() {
   const [templateName, setTemplateName] = useState('')
   const [showTokenHelper, setShowTokenHelper] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
+  const [customTokenValues, setCustomTokenValues] = useState<TokenValue>({})
+  const [editingToken, setEditingToken] = useState<string | null>(null)
+  const [editValue, setEditValue] = useState('')
   const contactManager = useContacts()
   const contacts = contactManager.getAllContacts()
 
@@ -52,10 +61,19 @@ export default function Personalization() {
     setTemplates(newTemplates)
   }
 
-  // Generate personalized preview
+  // Generate personalized preview with custom values
   const generatePreview = () => {
-    const personalizedSubject = PersonalizationEngine.personalizeSubject(subject, previewContact)
-    const personalizedBody = PersonalizationEngine.personalizeBody(body, previewContact)
+    const contactWithCustomValues = { ...previewContact }
+    
+    // Apply custom token values if they exist
+    Object.entries(customTokenValues).forEach(([key, value]) => {
+      if (value.trim()) {
+        (contactWithCustomValues as any)[key] = value
+      }
+    })
+
+    const personalizedSubject = PersonalizationEngine.personalizeSubject(subject, contactWithCustomValues)
+    const personalizedBody = PersonalizationEngine.personalizeBody(body, contactWithCustomValues)
     return { subject: personalizedSubject, body: personalizedBody }
   }
 
@@ -67,6 +85,31 @@ export default function Personalization() {
     } else {
       setBody(prev => prev + formattedToken)
     }
+  }
+
+  // Handle token value assignment
+  const startEditingToken = (tokenKey: string) => {
+    setEditingToken(tokenKey)
+    setEditValue(customTokenValues[tokenKey] || '')
+  }
+
+  const saveTokenValue = () => {
+    if (editingToken) {
+      setCustomTokenValues(prev => ({
+        ...prev,
+        [editingToken]: editValue
+      }))
+      setEditingToken(null)
+      setEditValue('')
+    }
+  }
+
+  const clearTokenValue = (tokenKey: string) => {
+    setCustomTokenValues(prev => {
+      const newValues = { ...prev }
+      delete newValues[tokenKey]
+      return newValues
+    })
   }
 
   // Copy to clipboard
@@ -132,7 +175,7 @@ export default function Personalization() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Token Helper Sidebar */}
+        {/* Enhanced Token Helper Sidebar */}
         {showTokenHelper && (
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -143,19 +186,74 @@ export default function Personalization() {
               <h3 className="text-lg font-semibold text-white mb-4">Available Tokens</h3>
               <div className="space-y-3">
                 {PERSONALIZATION_TOKENS.map(token => (
-                  <div key={token.key} className="flex items-center justify-between p-3 bg-gray-700/30 rounded-lg">
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-white">{token.label}</div>
-                      <div className="text-xs text-gray-400">{token.description}</div>
-                                             <div className="text-xs text-teal-400 mt-1">{`{{${token.key}}}`}</div>
+                  <div key={token.key} className="bg-gray-700/30 rounded-lg">
+                    <div className="flex items-center justify-between p-3">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-white">{token.label}</div>
+                        <div className="text-xs text-gray-400">{token.description}</div>
+                        <div className="text-xs text-teal-400 mt-1">{`{{${token.key}}}`}</div>
+                        {customTokenValues[token.key] && (
+                          <div className="text-xs text-yellow-400 mt-1">
+                            Custom: "{customTokenValues[token.key]}"
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => startEditingToken(token.key)}
+                          className="p-1 text-gray-400 hover:text-yellow-400 transition-colors"
+                          title="Assign custom value"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => insertToken(token.key, 'subject')}
+                          className="p-1 text-gray-400 hover:text-white transition-colors"
+                          title="Insert into editor"
+                        >
+                          <Plus size={14} />
+                        </button>
+                        {customTokenValues[token.key] && (
+                          <button
+                            onClick={() => clearTokenValue(token.key)}
+                            className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                            title="Clear custom value"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    <button
-                      onClick={() => insertToken(token.key, 'subject')}
-                      className="p-1 text-gray-400 hover:text-white transition-colors"
-                      title="Insert into subject"
-                    >
-                      <Plus size={16} />
-                    </button>
+                    
+                    {/* Token Value Editor */}
+                    {editingToken === token.key && (
+                      <div className="border-t border-gray-600/50 p-3">
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={editValue}
+                            onChange={(e) => setEditValue(e.target.value)}
+                            placeholder={`Enter custom value for ${token.label}`}
+                            className="flex-1 px-2 py-1 bg-gray-600 border border-gray-500 rounded text-white text-sm"
+                            autoFocus
+                          />
+                          <button
+                            onClick={saveTokenValue}
+                            className="p-1 text-green-400 hover:text-green-300 transition-colors"
+                            title="Save"
+                          >
+                            <Save size={14} />
+                          </button>
+                          <button
+                            onClick={() => setEditingToken(null)}
+                            className="p-1 text-gray-400 hover:text-white transition-colors"
+                            title="Cancel"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -179,6 +277,26 @@ export default function Personalization() {
                   </option>
                 ))}
               </select>
+              
+              {Object.keys(customTokenValues).length > 0 && (
+                <div className="mt-4">
+                  <div className="text-sm font-medium text-white mb-2">Custom Values:</div>
+                  <div className="space-y-1">
+                    {Object.entries(customTokenValues).map(([key, value]) => (
+                      <div key={key} className="flex justify-between text-xs">
+                        <span className="text-gray-400">{key}:</span>
+                        <span className="text-yellow-400">"{value}"</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button
+                    onClick={() => setCustomTokenValues({})}
+                    className="mt-2 text-xs text-red-400 hover:text-red-300 transition-colors"
+                  >
+                    Clear all custom values
+                  </button>
+                </div>
+              )}
             </div>
           </motion.div>
         )}

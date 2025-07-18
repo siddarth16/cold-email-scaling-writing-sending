@@ -66,6 +66,48 @@ export function Settings() {
     }
   }, [])
 
+  // Load theme settings from localStorage
+  useEffect(() => {
+    const stored = localStorage.getItem('coldscale_theme_settings')
+    if (stored) {
+      const settings = JSON.parse(stored)
+      setThemeSettings(settings)
+      applyThemeSettings(settings)
+    }
+  }, [])
+
+  // Apply theme settings to document root
+  const applyThemeSettings = (settings: ThemeSettings) => {
+    const root = document.documentElement
+    
+    // Convert hex colors to RGB for better CSS variable usage
+    const hexToRgb = (hex: string) => {
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+      return result ? `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : '20, 184, 166'
+    }
+
+    const primaryRgb = hexToRgb(settings.primaryColor)
+    const accentRgb = hexToRgb(settings.accentColor)
+
+    // Set CSS custom properties
+    root.style.setProperty('--color-primary', primaryRgb)
+    root.style.setProperty('--color-accent', accentRgb)
+    root.style.setProperty('--color-primary-hex', settings.primaryColor)
+    root.style.setProperty('--color-accent-hex', settings.accentColor)
+    
+    // Apply theme mode
+    root.classList.toggle('light-mode', settings.mode === 'light')
+    
+    // Apply animation settings
+    if (!settings.animation) {
+      root.style.setProperty('--animation-duration', '0s')
+      root.style.setProperty('--transition-duration', '0s')
+    } else {
+      root.style.setProperty('--animation-duration', '0.3s')
+      root.style.setProperty('--transition-duration', '0.2s')
+    }
+  }
+
   // Handle SMTP configuration changes
   const handleSmtpChange = (field: keyof SMTPConfig, value: string | number | boolean) => {
     setSmtpConfig(prev => ({ ...prev, [field]: value }))
@@ -136,8 +178,19 @@ export function Settings() {
 
   // Save theme settings
   const saveThemeSettings = () => {
-    localStorage.setItem('coldscale_theme_settings', JSON.stringify(themeSettings))
-    setSaveResult({ success: true, message: 'Theme settings saved successfully!' })
+    setIsSaving(true)
+    try {
+      localStorage.setItem('coldscale_theme_settings', JSON.stringify(themeSettings))
+      applyThemeSettings(themeSettings)
+      setSaveResult({ success: true, message: 'Theme settings saved successfully!' })
+      setTimeout(() => setSaveResult(null), 3000)
+    } catch (error) {
+      console.error('Failed to save theme settings:', error)
+      setSaveResult({ success: false, message: 'Failed to save theme settings' })
+      setTimeout(() => setSaveResult(null), 3000)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   // Export data

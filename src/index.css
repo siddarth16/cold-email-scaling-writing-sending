@@ -2,6 +2,16 @@
 @tailwind components;
 @tailwind utilities;
 
+/* CSS Custom Properties for Dynamic Theming */
+:root {
+  --color-primary: 20, 184, 166;
+  --color-accent: 245, 158, 11;
+  --color-primary-hex: #14b8a6;
+  --color-accent-hex: #f59e0b;
+  --animation-duration: 0.3s;
+  --transition-duration: 0.2s;
+}
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -12,12 +22,12 @@
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(20, 184, 166, 0.3);
+  background: rgba(var(--color-primary), 0.3);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(20, 184, 166, 0.5);
+  background: rgba(var(--color-primary), 0.5);
 }
 
 /* Glass effect utility */
@@ -29,7 +39,7 @@
 
 /* Glow effect utility */
 .glow {
-  box-shadow: 0 0 20px rgba(20, 184, 166, 0.3);
+  box-shadow: 0 0 20px rgba(var(--color-primary), 0.3);
 }
 
 /* Animation utilities */
@@ -45,16 +55,25 @@
 }
 
 .animate-slideInUp {
-  animation: slideInUp 0.3s ease-out;
+  animation: slideInUp var(--animation-duration) ease-out;
 }
 
 /* Neo-cyber button styles */
 .neo-button {
-  @apply relative overflow-hidden rounded-lg px-6 py-3 font-medium text-white transition-all duration-300;
-  @apply bg-gradient-to-r from-primary-600 to-primary-500;
-  @apply hover:from-primary-500 hover:to-primary-400;
-  @apply active:scale-95;
-  @apply shadow-lg shadow-primary-500/25;
+  @apply relative overflow-hidden rounded-lg px-6 py-3 font-medium text-white;
+  transition: all var(--transition-duration);
+  background: linear-gradient(to right, rgba(var(--color-primary), 0.8), rgba(var(--color-primary), 0.9));
+  box-shadow: 0 4px 6px -1px rgba(var(--color-primary), 0.25), 0 2px 4px -1px rgba(var(--color-primary), 0.06);
+}
+
+.neo-button:hover {
+  background: linear-gradient(to right, rgba(var(--color-primary), 0.9), rgba(var(--color-primary), 1));
+  transform: translateY(-1px);
+  box-shadow: 0 10px 15px -3px rgba(var(--color-primary), 0.3), 0 4px 6px -2px rgba(var(--color-primary), 0.1);
+}
+
+.neo-button:active {
+  transform: scale(0.95);
 }
 
 .neo-button::before {
@@ -77,19 +96,84 @@
   @apply glass rounded-xl border border-white/10 backdrop-blur-xl;
   @apply bg-gradient-to-br from-white/5 to-white/0;
   @apply shadow-2xl shadow-black/20;
+  transition: all var(--transition-duration);
 }
 
 .neo-card:hover {
-  @apply border-primary-500/30 shadow-primary-500/10;
+  border-color: rgba(var(--color-primary), 0.3);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 20px rgba(var(--color-primary), 0.1);
 }
 
 /* Neo-cyber input styles */
 .neo-input {
   @apply w-full rounded-lg border border-white/10 bg-white/5 px-4 py-3 text-white placeholder-white/50;
-  @apply focus:border-primary-500/50 focus:outline-none focus:ring-2 focus:ring-primary-500/20;
-  @apply transition-all duration-200;
+  transition: all var(--transition-duration);
 }
 
 .neo-input:focus {
-  @apply bg-white/10;
+  @apply bg-white/10 outline-none;
+  border-color: rgba(var(--color-primary), 0.5);
+  box-shadow: 0 0 0 3px rgba(var(--color-primary), 0.2);
+}
+
+/* Dynamic color utilities */
+.bg-primary-500 {
+  background-color: rgba(var(--color-primary), 1) !important;
+}
+
+.bg-primary-600 {
+  background-color: rgba(var(--color-primary), 0.9) !important;
+}
+
+.text-primary-400 {
+  color: rgba(var(--color-primary), 0.8) !important;
+}
+
+.text-primary-500 {
+  color: rgba(var(--color-primary), 1) !important;
+}
+
+.border-primary-500 {
+  border-color: rgba(var(--color-primary), 1) !important;
+}
+
+.border-primary-500\/30 {
+  border-color: rgba(var(--color-primary), 0.3) !important;
+}
+
+.shadow-primary-500\/25 {
+  box-shadow: 0 4px 6px -1px rgba(var(--color-primary), 0.25), 0 2px 4px -1px rgba(var(--color-primary), 0.06) !important;
+}
+
+.focus\:ring-primary-500:focus {
+  box-shadow: 0 0 0 3px rgba(var(--color-primary), 0.2) !important;
+}
+
+/* Accent color utilities */
+.bg-accent-500 {
+  background-color: rgba(var(--color-accent), 1) !important;
+}
+
+.bg-accent-600 {
+  background-color: rgba(var(--color-accent), 0.9) !important;
+}
+
+.text-accent-400 {
+  color: rgba(var(--color-accent), 0.8) !important;
+}
+
+.text-accent-500 {
+  color: rgba(var(--color-accent), 1) !important;
+}
+
+/* Animation disable for accessibility */
+.light-mode {
+  /* Light mode styles can be added here in the future */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --animation-duration: 0s;
+    --transition-duration: 0s;
+  }
 } 

@@ -12,11 +12,69 @@ import {
   Target,
   MessageCircle,
   Clock,
-  PenTool
+  PenTool,
+  ChevronDown
 } from 'lucide-react'
 import { useAI, EmailPrompt } from '../lib/ai'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { toast } from 'react-hot-toast'
+
+// Custom Dropdown Component
+function CustomDropdown({ 
+  value, 
+  onChange, 
+  options, 
+  placeholder = "Select option" 
+}: {
+  value: string
+  onChange: (value: string) => void
+  options: { id: string; name: string; description?: string }[]
+  placeholder?: string
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const selectedOption = options.find(option => option.id === value)
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white/90 
+                 hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500 
+                 transition-all duration-200 flex items-center justify-between"
+      >
+        <span>{selectedOption ? selectedOption.name : placeholder}</span>
+        <ChevronDown 
+          size={16} 
+          className={`transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+      
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/10 
+                      rounded-lg shadow-xl max-h-60 overflow-auto">
+          {options.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              onClick={() => {
+                onChange(option.id)
+                setIsOpen(false)
+              }}
+              className="w-full px-4 py-3 text-left text-white/90 hover:bg-white/10 
+                       transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
+            >
+              <div className="font-medium">{option.name}</div>
+              {option.description && (
+                <div className="text-sm text-white/60 mt-1">{option.description}</div>
+              )}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function AIWriter() {
   const ai = useAI()
@@ -47,7 +105,7 @@ export function AIWriter() {
     { id: 'professional', name: 'Professional', description: 'Formal and business-focused' },
     { id: 'friendly', name: 'Friendly', description: 'Warm and approachable' },
     { id: 'casual', name: 'Casual', description: 'Relaxed and conversational' },
-    { id: 'urgent', name: 'Urgent', description: 'Time-sensitive and direct' },
+    { id: 'persuasive', name: 'Persuasive', description: 'Compelling and action-oriented' },
     { id: 'consultative', name: 'Consultative', description: 'Advisory and helpful' }
   ]
 
@@ -87,7 +145,7 @@ export function AIWriter() {
       toast.success('Email generated successfully!')
     } catch (error) {
       console.error('Generation failed:', error)
-      toast.error('Failed to generate email')
+      toast.error('Failed to generate email. Please try again.')
     } finally {
       setIsGenerating(false)
     }
@@ -229,32 +287,22 @@ export function AIWriter() {
             <div className="grid grid-cols-2 gap-6">
               <div>
                 <label className="block text-white/80 text-sm font-medium mb-3">Tone</label>
-                <select
+                <CustomDropdown
                   value={prompt.tone}
-                  onChange={(e) => setPrompt({ ...prompt, tone: e.target.value })}
-                  className="neo-input"
-                >
-                  {tones.map((tone) => (
-                    <option key={tone.id} value={tone.id}>
-                      {tone.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setPrompt({ ...prompt, tone: value })}
+                  options={tones}
+                  placeholder="Select tone"
+                />
               </div>
 
               <div>
                 <label className="block text-white/80 text-sm font-medium mb-3">Length</label>
-                <select
+                <CustomDropdown
                   value={prompt.length}
-                  onChange={(e) => setPrompt({ ...prompt, length: e.target.value })}
-                  className="neo-input"
-                >
-                  {lengths.map((length) => (
-                    <option key={length.id} value={length.id}>
-                      {length.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(value) => setPrompt({ ...prompt, length: value })}
+                  options={lengths}
+                  placeholder="Select length"
+                />
               </div>
             </div>
           </motion.div>

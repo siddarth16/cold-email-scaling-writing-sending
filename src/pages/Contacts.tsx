@@ -20,11 +20,227 @@ import { Contact, ContactFilter, useContacts } from '../lib/contacts'
 import { ContactImportModal } from '../components/ContactImportModal'
 import { toast } from 'react-hot-toast'
 
+// Add Contact Modal Component
+function AddContactModal({ 
+  isOpen, 
+  onClose, 
+  onAdd 
+}: { 
+  isOpen: boolean
+  onClose: () => void
+  onAdd: (contact: Partial<Contact>) => void 
+}) {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    company: '',
+    position: '',
+    phone: '',
+    industry: '',
+    location: '',
+    tags: ''
+  })
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!formData.firstName || !formData.lastName || !formData.email) {
+      toast.error('Please fill in all required fields')
+      return
+    }
+
+    const contactData = {
+      ...formData,
+      tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
+    }
+
+    onAdd(contactData)
+    setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
+      company: '',
+      position: '',
+      phone: '',
+      industry: '',
+      location: '',
+      tags: ''
+    })
+    onClose()
+  }
+
+  if (!isOpen) return null
+
+  return (
+    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.95 }}
+        className="bg-gray-800/95 backdrop-blur-md border border-white/10 rounded-xl p-6 w-full max-w-md"
+      >
+        <div className="flex items-center justify-between mb-6">
+          <h3 className="text-xl font-semibold text-white">Add New Contact</h3>
+          <button
+            onClick={onClose}
+            className="text-white/60 hover:text-white transition-colors"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-white/70 text-sm font-medium mb-2">
+                First Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.firstName}
+                onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                className="neo-input"
+                placeholder="John"
+              />
+            </div>
+            <div>
+              <label className="block text-white/70 text-sm font-medium mb-2">
+                Last Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.lastName}
+                onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                className="neo-input"
+                placeholder="Doe"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-2">
+              Email *
+            </label>
+            <input
+              type="email"
+              required
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              className="neo-input"
+              placeholder="john.doe@company.com"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-white/70 text-sm font-medium mb-2">
+                Company
+              </label>
+              <input
+                type="text"
+                value={formData.company}
+                onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                className="neo-input"
+                placeholder="Company Inc."
+              />
+            </div>
+            <div>
+              <label className="block text-white/70 text-sm font-medium mb-2">
+                Position
+              </label>
+              <input
+                type="text"
+                value={formData.position}
+                onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                className="neo-input"
+                placeholder="CEO"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-2">
+              Phone
+            </label>
+            <input
+              type="tel"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              className="neo-input"
+              placeholder="+1 (555) 123-4567"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-white/70 text-sm font-medium mb-2">
+                Industry
+              </label>
+              <input
+                type="text"
+                value={formData.industry}
+                onChange={(e) => setFormData({ ...formData, industry: e.target.value })}
+                className="neo-input"
+                placeholder="Technology"
+              />
+            </div>
+            <div>
+              <label className="block text-white/70 text-sm font-medium mb-2">
+                Location
+              </label>
+              <input
+                type="text"
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="neo-input"
+                placeholder="San Francisco, CA"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-white/70 text-sm font-medium mb-2">
+              Tags (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={formData.tags}
+              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+              className="neo-input"
+              placeholder="lead, interested, high-priority"
+            />
+          </div>
+
+          <div className="flex items-center gap-3 pt-4">
+            <button
+              type="submit"
+              className="neo-button flex-1"
+            >
+              Add Contact
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5 transition-all"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </motion.div>
+    </div>
+  )
+}
+
 export function Contacts() {
   const [contacts, setContacts] = useState<Contact[]>([])
   const [filteredContacts, setFilteredContacts] = useState<Contact[]>([])
   const [selectedContacts, setSelectedContacts] = useState<string[]>([])
   const [showImportModal, setShowImportModal] = useState(false)
+  const [showAddModal, setShowAddModal] = useState(false)
   const [filter, setFilter] = useState<ContactFilter>({
     search: '',
     tags: [],
@@ -97,6 +313,13 @@ export function Contacts() {
           <p className="text-white/70 mt-1">Manage your contact database</p>
         </div>
         <div className="flex items-center gap-3">
+          <button
+            onClick={() => setShowAddModal(true)}
+            className="neo-button inline-flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Add Contact
+          </button>
           <button 
             onClick={handleExport}
             className="px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5 transition-all flex items-center gap-2"
@@ -106,9 +329,9 @@ export function Contacts() {
           </button>
           <button 
             onClick={() => setShowImportModal(true)}
-            className="neo-button inline-flex items-center gap-2"
+            className="px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5 transition-all flex items-center gap-2"
           >
-            <Upload size={20} />
+            <Upload size={16} />
             Import CSV
           </button>
         </div>
@@ -391,6 +614,27 @@ export function Contacts() {
         )}
       </motion.div>
 
+      {/* Add Contact Modal */}
+      <AddContactModal
+        isOpen={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={(contactData) => {
+          const newContact = contactManager.addContact({
+            firstName: contactData.firstName!,
+            lastName: contactData.lastName!,
+            email: contactData.email!,
+            company: contactData.company || '',
+            position: contactData.position || '',
+            phone: contactData.phone || '',
+            industry: contactData.industry || '',
+            location: contactData.location || '',
+            tags: contactData.tags || []
+          })
+          toast.success('Contact added successfully!')
+        }}
+      />
+
+      {/* Import Modal */}
       <ContactImportModal
         isOpen={showImportModal}
         onClose={() => setShowImportModal(false)}
