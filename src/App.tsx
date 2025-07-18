@@ -7,10 +7,11 @@ import { Dashboard } from './pages/Dashboard'
 import { Login } from './pages/Login'
 import { Register } from './pages/Register'
 import { AIWriter } from './pages/AIWriter'
-import { Campaigns } from './pages/Campaigns'
+import Campaigns from './pages/Campaigns'
 import { Contacts } from './pages/Contacts'
 import { Analytics } from './pages/Analytics'
 import { Settings } from './pages/Settings'
+import Personalization from './pages/Personalization'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Layout } from './components/Layout'
 
@@ -51,6 +52,13 @@ function App() {
                 <ProtectedRoute>
                   <Layout>
                     <Contacts />
+                  </Layout>
+                </ProtectedRoute>
+              } />
+              <Route path="/personalization" element={
+                <ProtectedRoute>
+                  <Layout>
+                    <Personalization />
                   </Layout>
                 </ProtectedRoute>
               } />

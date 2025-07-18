@@ -11,8 +11,15 @@ export interface Contact {
   website?: string
   notes?: string
   tags: string[]
+  industry?: string
+  location?: string
   createdAt: string
   updatedAt: string
+}
+
+// Computed property for full name
+export function getFullName(contact: Contact): string {
+  return `${contact.firstName} ${contact.lastName}`.trim()
 }
 
 export interface ContactImportResult {

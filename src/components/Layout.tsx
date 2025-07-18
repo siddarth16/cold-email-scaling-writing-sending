@@ -10,7 +10,8 @@ import {
   LogOut,
   Menu,
   X,
-  Sparkles
+  Sparkles,
+  Code
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { isSupabaseConfigured } from '../lib/supabase'
@@ -24,6 +25,7 @@ const navigation = [
   { name: 'AI Writer', href: '/ai-writer', icon: Sparkles },
   { name: 'Campaigns', href: '/campaigns', icon: Mail },
   { name: 'Contacts', href: '/contacts', icon: Users },
+  { name: 'Personalization', href: '/personalization', icon: Code },
   { name: 'Analytics', href: '/analytics', icon: BarChart3 },
   { name: 'Settings', href: '/settings', icon: Settings },
 ]
