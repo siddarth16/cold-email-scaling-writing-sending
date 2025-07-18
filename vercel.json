@@ -1,7 +1,0 @@
-{
-  "functions": {
-    "api/generate-email.ts": {
-      "runtime": "@vercel/node"
-    }
-  }
-} 
