@@ -135,81 +135,133 @@ Write compelling, personalized cold emails that will get responses from ${prompt
 
     const generatedText = data.candidates[0].content.parts[0].text
     console.log('Generated text length:', generatedText.length)
-    console.log('Generated text preview:', generatedText.substring(0, 500) + '...')
+    console.log('Full generated text:', generatedText)
     
-    // More robust parsing with multiple fallback methods
+    // Much more robust parsing that preserves content
     let subjects = []
     let bodies = []
     
-    // Method 1: Try standard format
-    const subjectMatch = generatedText.match(/<Subject>\s*(.*?)\s*<\/?\s*Subject>/s)
+    // Enhanced subject parsing - multiple methods
+    console.log('=== PARSING SUBJECTS ===')
+    
+    // Method 1: Standard XML-like format
+    const subjectMatch = generatedText.match(/<Subject>\s*(.*?)\s*(?:<\/?\s*Subject>|$)/s)
     if (subjectMatch) {
+      console.log('Found subject match:', subjectMatch[1])
       subjects = subjectMatch[1]
-        .split(';')
+        .split(/[;\n]/) // Split by semicolon OR newline
         .map(s => s.trim())
-        .filter(s => s.length > 0)
+        .filter(s => s.length > 0 && !s.toLowerCase().includes('<subject'))
         .slice(0, 5)
     }
     
-    // Method 2: Fallback for subjects - look for numbered lists or bullet points
+    // Method 2: Look for "Subject:" patterns
     if (subjects.length === 0) {
-      console.log('Trying fallback subject parsing...')
-      const subjectLines = generatedText.split('\n')
-        .filter(line => 
-          line.trim().match(/^(\d+\.|\*|\-|•)\s*.+/) || 
-          line.trim().toLowerCase().includes('subject')
-        )
-        .slice(0, 5)
-        .map(line => line.replace(/^(\d+\.|\*|\-|•)\s*/, '').trim())
-        .filter(line => line.length > 0)
-      
-      if (subjectLines.length > 0) {
+      console.log('Trying subject: pattern...')
+      const subjectLines = generatedText.match(/subject\s*\d*\s*:?\s*(.+?)(?:\n|$)/gi)
+      if (subjectLines) {
         subjects = subjectLines
+          .map(line => line.replace(/subject\s*\d*\s*:?\s*/i, '').trim())
+          .filter(s => s.length > 0)
+          .slice(0, 5)
       }
+    }
+    
+    // Method 3: Look for numbered/bulleted lists
+    if (subjects.length === 0) {
+      console.log('Trying numbered list parsing for subjects...')
+      const lines = generatedText.split('\n')
+      subjects = lines
+        .filter(line => {
+          const trimmed = line.trim()
+          return trimmed.match(/^(\d+[\.\)]\s*|[\*\-•]\s*)/i) && 
+                 trimmed.length > 5 && 
+                 trimmed.length < 100 // Likely a subject line
+        })
+        .map(line => line.replace(/^(\d+[\.\)]\s*|[\*\-•]\s*)/, '').trim())
+        .slice(0, 5)
     }
 
-    // Method 1: Try standard body format
-    for (let i = 1; i <= 5; i++) {
-      const bodyRegex = new RegExp(`<Body ${i}>\\s*(.*?)\\s*<\/?\\s*Body ${i}>`, 's')
-      const bodyMatch = generatedText.match(bodyRegex)
-      if (bodyMatch) {
-        bodies.push(bodyMatch[1].trim())
-      }
-    }
+    console.log('Final subjects found:', subjects.length, subjects)
+
+    // Enhanced body parsing - much more lenient
+    console.log('=== PARSING BODIES ===')
     
-    // Method 2: Fallback for bodies - split by common patterns
-    if (bodies.length === 0) {
-      console.log('Trying fallback body parsing...')
+    // Method 1: Standard XML-like format with non-greedy matching
+    for (let i = 1; i <= 5; i++) {
+      // Try multiple variations of body tags
+      const patterns = [
+        `<Body ${i}>([\\s\\S]*?)(?:<\/?\\s*Body ${i}>|<Body ${i+1}>|$)`,
+        `<Body${i}>([\\s\\S]*?)(?:<\/?\\s*Body${i}>|<Body${i+1}>|$)`,
+        `Body ${i}[:\\-\\s]*([\\s\\S]*?)(?:Body ${i+1}|<Body|$)`
+      ]
       
-      // Try to split by email patterns or body markers
-      const emailSections = generatedText
-        .split(/(?:Email\s*\d+|Body\s*\d+|Option\s*\d+)/i)
-        .slice(1) // Remove first empty part
-        .map(section => section.trim())
-        .filter(section => section.length > 50) // Filter out too short sections
-        .slice(0, 5)
-      
-      if (emailSections.length > 0) {
-        bodies = emailSections
-      } else {
-        // Last resort: split by double newlines and take longer sections
-        const paragraphs = generatedText
-          .split(/\n\s*\n/)
-          .map(p => p.trim())
-          .filter(p => p.length > 100) // Only longer paragraphs
-          .slice(0, 5)
-        
-        if (paragraphs.length > 0) {
-          bodies = paragraphs
+      for (const pattern of patterns) {
+        const bodyMatch = generatedText.match(new RegExp(pattern, 's'))
+        if (bodyMatch && bodyMatch[1].trim().length > 20) {
+          let bodyContent = bodyMatch[1].trim()
+          // Clean up any remaining tags
+          bodyContent = bodyContent.replace(/<\/?Body\s*\d*>/gi, '').trim()
+          if (bodyContent.length > 20) {
+            bodies.push(bodyContent)
+            console.log(`Found body ${i} with pattern ${pattern}:`, bodyContent.substring(0, 100) + '...')
+            break
+          }
         }
       }
     }
+    
+    // Method 2: Split by clear email separators
+    if (bodies.length === 0) {
+      console.log('Trying email separator parsing...')
+      const separators = [
+        /(?:Email|Option|Version)\s*\d+[:\-\s]*/gi,
+        /\n\s*\d+[\.\)]\s*(?=\w)/g,
+        /\n\s*[\*\-]\s*(?=\w)/g
+      ]
+      
+      for (const separator of separators) {
+        const sections = generatedText.split(separator)
+        if (sections.length > 2) { // At least some splits occurred
+          bodies = sections
+            .slice(1) // Skip first part (usually instructions)
+            .map(section => section.trim())
+            .filter(section => section.length > 30) // More lenient length check
+            .slice(0, 5)
+          
+          if (bodies.length > 0) {
+            console.log(`Found ${bodies.length} bodies using separator parsing`)
+            break
+          }
+        }
+      }
+    }
+    
+    // Method 3: Smart paragraph detection
+    if (bodies.length === 0) {
+      console.log('Trying smart paragraph detection...')
+      const paragraphs = generatedText
+        .split(/\n\s*\n+/) // Split by double+ newlines
+        .map(p => p.trim())
+        .filter(p => {
+          // More intelligent filtering
+          return p.length > 30 && 
+                 !p.toLowerCase().includes('subject') &&
+                 !p.toLowerCase().includes('output format') &&
+                 !p.toLowerCase().includes('requirements') &&
+                 (p.includes('{{') || p.includes('Hi ') || p.includes('Hello ') || p.includes('Dear '))
+        })
+        .slice(0, 5)
+      
+      if (paragraphs.length > 0) {
+        bodies = paragraphs
+        console.log(`Found ${bodies.length} bodies using paragraph detection`)
+      }
+    }
 
-    console.log('Parsed results:', { 
-      subjects: subjects.length, 
-      bodies: bodies.length,
-      subjectSample: subjects[0] ? subjects[0].substring(0, 50) + '...' : 'none',
-      bodySample: bodies[0] ? bodies[0].substring(0, 100) + '...' : 'none'
+    console.log('Final bodies found:', bodies.length)
+    bodies.forEach((body, i) => {
+      console.log(`Body ${i+1} (${body.length} chars):`, body.substring(0, 150) + '...')
     })
     
     // Ensure we have at least some content
