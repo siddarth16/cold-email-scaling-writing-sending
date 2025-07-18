@@ -37,7 +37,7 @@ export default async function handler(req: any, res: any) {
       return res.status(500).json({ 
         subjects: [], 
         bodies: [], 
-        error: 'Gemini API key not configured' 
+        error: 'AI API key not configured' 
       })
     }
 

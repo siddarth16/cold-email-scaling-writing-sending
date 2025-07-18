@@ -223,7 +223,7 @@ export function AIWriter() {
       setGenerationResult(result)
       setSelectedSubjectIndex(0)
       setSelectedBodyIndex(0)
-      toast.success(`Generated ${result.subjects.length} subject options and ${result.bodies.length} body options!`)
+      toast.success('Email options generated successfully!')
     } catch (error) {
       console.error('Generation failed:', error)
       toast.error('Failed to generate email. Please try again.')
@@ -297,12 +297,12 @@ export function AIWriter() {
             <Sparkles className="text-primary-400" />
             AI Email Writer
           </h1>
-          <p className="text-white/70 mt-1">Generate compelling cold emails with Gemini AI</p>
+          <p className="text-white/70 mt-1">Generate compelling cold emails with AI</p>
         </div>
         {ai.isInitialized && (
           <div className="text-sm text-green-400 flex items-center gap-2">
             <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></div>
-            Gemini AI Ready
+            AI Ready
           </div>
         )}
       </div>
@@ -440,12 +440,12 @@ export function AIWriter() {
               {isGenerating ? (
                 <>
                   <LoadingSpinner />
-                  Generating with Gemini AI...
+                  Generating with AI...
                 </>
               ) : (
                 <>
                   <Sparkles size={20} className="group-hover:rotate-12 transition-transform" />
-                  Generate 5 Email Options
+                  Generate Email
                 </>
               )}
             </button>
@@ -581,7 +581,7 @@ export function AIWriter() {
               <div className="text-center py-12">
                 <Mail size={48} className="mx-auto text-white/20 mb-4" />
                 <p className="text-white/60 mb-2">No emails generated yet</p>
-                <p className="text-white/40 text-sm">Fill in the parameters and click "Generate 5 Email Options" to get started</p>
+                <p className="text-white/40 text-sm">Fill in the parameters and click "Generate Email" to get started</p>
               </div>
             )}
           </motion.div>
