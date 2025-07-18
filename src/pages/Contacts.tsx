@@ -20,6 +20,30 @@ import { Contact, ContactFilter, useContacts } from '../lib/contacts'
 import { ContactImportModal } from '../components/ContactImportModal'
 import { toast } from 'react-hot-toast'
 
+// Common country codes for phone numbers
+const countryCodes = [
+  { code: '+1', country: 'US/CA', name: 'United States/Canada' },
+  { code: '+44', country: 'UK', name: 'United Kingdom' },
+  { code: '+49', country: 'DE', name: 'Germany' },
+  { code: '+33', country: 'FR', name: 'France' },
+  { code: '+39', country: 'IT', name: 'Italy' },
+  { code: '+34', country: 'ES', name: 'Spain' },
+  { code: '+31', country: 'NL', name: 'Netherlands' },
+  { code: '+46', country: 'SE', name: 'Sweden' },
+  { code: '+47', country: 'NO', name: 'Norway' },
+  { code: '+45', country: 'DK', name: 'Denmark' },
+  { code: '+61', country: 'AU', name: 'Australia' },
+  { code: '+64', country: 'NZ', name: 'New Zealand' },
+  { code: '+81', country: 'JP', name: 'Japan' },
+  { code: '+82', country: 'KR', name: 'South Korea' },
+  { code: '+86', country: 'CN', name: 'China' },
+  { code: '+91', country: 'IN', name: 'India' },
+  { code: '+55', country: 'BR', name: 'Brazil' },
+  { code: '+52', country: 'MX', name: 'Mexico' },
+  { code: '+7', country: 'RU', name: 'Russia' },
+  { code: '+27', country: 'ZA', name: 'South Africa' }
+]
+
 // Add Contact Modal Component
 function AddContactModal({ 
   isOpen, 
@@ -36,6 +60,7 @@ function AddContactModal({
     email: '',
     company: '',
     position: '',
+    countryCode: '+1',
     phone: '',
     industry: '',
     location: '',
@@ -52,6 +77,7 @@ function AddContactModal({
 
     const contactData = {
       ...formData,
+      phone: formData.phone ? `${formData.countryCode} ${formData.phone}` : '',
       tags: formData.tags.split(',').map(tag => tag.trim()).filter(tag => tag)
     }
 
@@ -62,6 +88,7 @@ function AddContactModal({
       email: '',
       company: '',
       position: '',
+      countryCode: '+1',
       phone: '',
       industry: '',
       location: '',
@@ -163,15 +190,28 @@ function AddContactModal({
 
           <div>
             <label className="block text-white/70 text-sm font-medium mb-2">
-              Phone
+              Phone Number
             </label>
-            <input
-              type="tel"
-              value={formData.phone}
-              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-              className="neo-input"
-              placeholder="+1 (555) 123-4567"
-            />
+            <div className="flex gap-2">
+              <select
+                value={formData.countryCode}
+                onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
+                className="neo-input w-28 text-center"
+              >
+                {countryCodes.map((country) => (
+                  <option key={country.code} value={country.code} title={country.name}>
+                    {country.code} {country.country}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="neo-input flex-1"
+                placeholder="(555) 123-4567"
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

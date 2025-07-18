@@ -11,7 +11,15 @@ export const supabase: SupabaseClient | null = (() => {
   }
   
   try {
-    return createClient(supabaseUrl, supabaseKey)
+    return createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        autoRefreshToken: true,
+        persistSession: true,
+        detectSessionInUrl: true,
+        storageKey: 'coldscale-auth-token',
+        storage: window.localStorage
+      }
+    })
   } catch (error) {
     console.warn('Failed to initialize Supabase client:', error)
     return null

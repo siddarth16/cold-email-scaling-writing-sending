@@ -38,21 +38,47 @@ export function AuthProvider({ children }: AuthProviderProps) {
       return
     }
 
-    // Get initial session
-    supabase!.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
+    let isMounted = true
+
+    // Get initial session with better error handling
+    const initializeAuth = async () => {
+      try {
+        const { data: { session }, error } = await supabase!.auth.getSession()
+        
+        if (isMounted) {
+          if (error) {
+            console.warn('Error getting session:', error)
+            setUser(null)
+          } else {
+            setUser(session?.user ?? null)
+          }
+          setLoading(false)
+        }
+      } catch (error) {
+        console.warn('Failed to initialize auth:', error)
+        if (isMounted) {
+          setUser(null)
+          setLoading(false)
+        }
+      }
+    }
+
+    initializeAuth()
 
     // Listen for auth changes
     const {
       data: { subscription },
     } = supabase!.auth.onAuthStateChange(async (event, session) => {
-      setUser(session?.user ?? null)
-      setLoading(false)
+      if (isMounted) {
+        setUser(session?.user ?? null)
+        setLoading(false)
+      }
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {

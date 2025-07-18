@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Mail, Lock, User, ArrowRight } from 'lucide-react'
+import { Mail, Lock, User, ArrowRight, CheckCircle, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { LoadingSpinner } from '../components/LoadingSpinner'
 import { isSupabaseConfigured } from '../lib/supabase'
@@ -11,6 +11,7 @@ export function Register() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showConfirmationModal, setShowConfirmationModal] = useState(false)
   const { signUp } = useAuth()
   const navigate = useNavigate()
 
@@ -33,7 +34,7 @@ export function Register() {
     
     try {
       await signUp(email, password)
-      navigate('/app')
+      setShowConfirmationModal(true)
     } catch (error) {
       // Error is handled by the auth context
     } finally {
@@ -142,6 +143,53 @@ export function Register() {
           </div>
         </motion.div>
       </div>
+
+      {/* Email Confirmation Modal */}
+      {showConfirmationModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center px-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="neo-card p-8 w-full max-w-md text-center"
+          >
+            <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg shadow-green-500/25">
+              <CheckCircle size={32} className="text-white" />
+            </div>
+            
+            <h2 className="text-2xl font-bold text-white mb-4">Check Your Email!</h2>
+            
+            <p className="text-white/80 mb-6 leading-relaxed">
+              We've sent a confirmation email to <strong className="text-primary-400">{email}</strong>. 
+              Please check your inbox and click the confirmation link to activate your account.
+            </p>
+            
+            <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4 mb-6">
+              <p className="text-amber-300 text-sm">
+                <strong>Important:</strong> Don't forget to check your spam folder if you don't see the email within a few minutes.
+              </p>
+            </div>
+            
+            <div className="space-y-3">
+              <p className="text-white/60 text-sm">After confirming your email, you can sign in below:</p>
+              
+              <button
+                onClick={() => navigate('/login')}
+                className="neo-button w-full group flex items-center justify-center gap-2"
+              >
+                Go to Sign In
+                <ArrowRight size={20} className="group-hover:translate-x-1 transition-transform" />
+              </button>
+              
+              <button
+                onClick={() => setShowConfirmationModal(false)}
+                className="text-white/60 hover:text-white transition-colors text-sm underline"
+              >
+                I'll confirm later
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   )
 } 
