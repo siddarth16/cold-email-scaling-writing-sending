@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Users, 
@@ -14,11 +14,123 @@ import {
   Phone,
   Building,
   Tag,
-  MoreVertical
+  MoreVertical,
+  ChevronDown,
+  Check
 } from 'lucide-react'
 import { Contact, ContactFilter, useContacts } from '../lib/contacts'
 import { ContactImportModal } from '../components/ContactImportModal'
 import { toast } from 'react-hot-toast'
+
+// Mobile-Optimized Country Dropdown Component
+function MobileCountryDropdown({ 
+  value, 
+  onChange, 
+  countries 
+}: {
+  value: string
+  onChange: (value: string) => void
+  countries: Array<{ code: string; country: string; name: string }>
+}) {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+  const selectedCountry = countries.find(country => country.code === value)
+
+  // Click outside handler for mobile
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('touchstart', handleClickOutside)
+      // Prevent background scroll on mobile when dropdown is open
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  const toggleDropdown = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsOpen(!isOpen)
+  }
+
+  const handleCountrySelect = (countryCode: string) => {
+    onChange(countryCode)
+    setIsOpen(false)
+  }
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <button
+        type="button"
+        onClick={toggleDropdown}
+        onTouchEnd={toggleDropdown}
+        className="neo-input w-28 text-center flex items-center justify-between
+                 touch-manipulation active:scale-95 transition-transform"
+      >
+        <span className="truncate text-xs">
+          {selectedCountry ? `${selectedCountry.code} ${selectedCountry.country}` : '+1 US'}
+        </span>
+        <ChevronDown 
+          size={14} 
+          className={`transition-transform duration-200 ml-1 ${isOpen ? 'rotate-180' : ''}`}
+        />
+      </button>
+      
+      {isOpen && (
+        <>
+          {/* Mobile backdrop overlay */}
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[9998] md:hidden" />
+          
+          {/* Dropdown menu */}
+          <div className={`
+            absolute z-[9999] w-56 mt-1 bg-gray-800/98 backdrop-blur-md border border-white/20 
+            rounded-lg shadow-2xl max-h-60 overflow-auto left-0
+            md:bg-gray-800/95 md:border-white/10
+            ${isOpen ? 'animate-in fade-in-0 zoom-in-95 duration-200' : ''}
+          `}>
+            {countries.map((country, index) => (
+              <button
+                key={country.code}
+                type="button"
+                onClick={() => handleCountrySelect(country.code)}
+                onTouchEnd={() => handleCountrySelect(country.code)}
+                className={`
+                  w-full px-3 py-2 text-left text-white/90 hover:bg-white/15 active:bg-white/20
+                  transition-colors duration-200 touch-manipulation text-sm
+                  ${index === 0 ? 'rounded-t-lg' : ''}
+                  ${index === countries.length - 1 ? 'rounded-b-lg' : ''}
+                  flex items-center justify-between
+                  ${value === country.code ? 'bg-primary-500/20 text-primary-400' : ''}
+                `}
+              >
+                <div>
+                  <div className="font-medium">{country.code} {country.country}</div>
+                  <div className="text-xs text-white/60">{country.name}</div>
+                </div>
+                {value === country.code && (
+                  <Check size={14} className="text-primary-400 flex-shrink-0" />
+                )}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 // Common country codes for phone numbers
 const countryCodes = [
@@ -193,17 +305,11 @@ function AddContactModal({
               Phone Number
             </label>
             <div className="flex gap-2">
-              <select
+              <MobileCountryDropdown
                 value={formData.countryCode}
-                onChange={(e) => setFormData({ ...formData, countryCode: e.target.value })}
-                className="neo-input w-28 text-center"
-              >
-                {countryCodes.map((country) => (
-                  <option key={country.code} value={country.code} title={country.name}>
-                    {country.code} {country.country}
-                  </option>
-                ))}
-              </select>
+                onChange={(value) => setFormData({ ...formData, countryCode: value })}
+                countries={countryCodes}
+              />
               <input
                 type="tel"
                 value={formData.phone}

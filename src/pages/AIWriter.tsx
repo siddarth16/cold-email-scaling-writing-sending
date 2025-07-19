@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 import { 
   Sparkles, 
@@ -23,7 +23,7 @@ import { LoadingSpinner } from '../components/LoadingSpinner'
 import { toast } from 'react-hot-toast'
 import { useTemplates } from '../lib/templates'
 
-// Custom Dropdown Component
+// Mobile-Optimized Dropdown Component
 function CustomDropdown({ 
   value, 
   onChange, 
@@ -36,16 +36,54 @@ function CustomDropdown({
   placeholder?: string
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const selectedOption = options.find(option => option.id === value)
 
+  // Click outside handler for mobile
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('touchstart', handleClickOutside)
+      // Prevent background scroll on mobile when dropdown is open
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  const toggleDropdown = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsOpen(!isOpen)
+  }
+
+  const handleOptionSelect = (optionId: string) => {
+    onChange(optionId)
+    setIsOpen(false)
+  }
+
   return (
-    <div className="relative">
+    <div ref={dropdownRef} className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleDropdown}
+        onTouchEnd={toggleDropdown}
         className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white/90 
                  hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500 
-                 transition-all duration-200 flex items-center justify-between"
+                 transition-all duration-200 flex items-center justify-between
+                 touch-manipulation active:scale-95"
       >
         <span>{selectedOption ? selectedOption.name : placeholder}</span>
         <ChevronDown 
@@ -55,32 +93,45 @@ function CustomDropdown({
       </button>
       
       {isOpen && (
-        <div className="absolute z-[100] w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/10 
-                      rounded-lg shadow-xl max-h-60 overflow-auto">
-          {options.map((option) => (
-            <button
-              key={option.id}
-              type="button"
-              onClick={() => {
-                onChange(option.id)
-                setIsOpen(false)
-              }}
-              className="w-full px-4 py-3 text-left text-white/90 hover:bg-white/10 
-                       transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg"
-            >
-              <div className="font-medium">{option.name}</div>
-              {option.description && (
-                <div className="text-sm text-white/60 mt-1">{option.description}</div>
-              )}
-            </button>
-          ))}
-        </div>
+        <>
+          {/* Mobile backdrop overlay */}
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[9998] md:hidden" />
+          
+          {/* Dropdown menu */}
+          <div className={`
+            absolute z-[9999] w-full mt-1 bg-gray-800/98 backdrop-blur-md border border-white/20 
+            rounded-lg shadow-2xl max-h-60 overflow-auto
+            md:bg-gray-800/95 md:border-white/10
+            ${isOpen ? 'animate-in fade-in-0 zoom-in-95 duration-200' : ''}
+          `}>
+            {options.map((option, index) => (
+              <button
+                key={option.id}
+                type="button"
+                onClick={() => handleOptionSelect(option.id)}
+                onTouchEnd={() => handleOptionSelect(option.id)}
+                className={`
+                  w-full px-4 py-3 text-left text-white/90 hover:bg-white/15 active:bg-white/20
+                  transition-colors duration-200 touch-manipulation
+                  ${index === 0 ? 'rounded-t-lg' : ''}
+                  ${index === options.length - 1 ? 'rounded-b-lg' : ''}
+                  ${value === option.id ? 'bg-primary-500/20 text-primary-400' : ''}
+                `}
+              >
+                <div className="font-medium">{option.name}</div>
+                {option.description && (
+                  <div className="text-sm text-white/60 mt-1">{option.description}</div>
+                )}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
 }
 
-// Subject Dropdown Component
+// Mobile-Optimized Subject Dropdown Component
 function SubjectDropdown({ 
   subjects, 
   selectedIndex, 
@@ -91,15 +142,53 @@ function SubjectDropdown({
   onSelect: (index: number) => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Click outside handler for mobile
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent | TouchEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+      document.addEventListener('touchstart', handleClickOutside)
+      // Prevent background scroll on mobile when dropdown is open
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = 'unset'
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('touchstart', handleClickOutside)
+      document.body.style.overflow = 'unset'
+    }
+  }, [isOpen])
+
+  const toggleDropdown = (e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setIsOpen(!isOpen)
+  }
+
+  const handleSubjectSelect = (index: number) => {
+    onSelect(index)
+    setIsOpen(false)
+  }
 
   return (
-    <div className="relative">
+    <div ref={dropdownRef} className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={toggleDropdown}
+        onTouchEnd={toggleDropdown}
         className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg text-white/90 
                  hover:border-white/20 focus:outline-none focus:ring-2 focus:ring-primary-500 
-                 transition-all duration-200 flex items-center justify-between text-left"
+                 transition-all duration-200 flex items-center justify-between text-left
+                 touch-manipulation active:scale-95"
       >
         <span className="truncate pr-2">
           {subjects[selectedIndex] || 'Select a subject line'}
@@ -111,27 +200,40 @@ function SubjectDropdown({
       </button>
       
       {isOpen && (
-        <div className="absolute z-[100] w-full mt-1 bg-gray-800/95 backdrop-blur-md border border-white/10 
-                      rounded-lg shadow-xl max-h-60 overflow-auto">
-          {subjects.map((subject, index) => (
-            <button
-              key={index}
-              type="button"
-              onClick={() => {
-                onSelect(index)
-                setIsOpen(false)
-              }}
-              className="w-full px-4 py-3 text-left text-white/90 hover:bg-white/10 
-                       transition-colors duration-200 first:rounded-t-lg last:rounded-b-lg
-                       flex items-center justify-between"
-            >
-              <span className="truncate pr-2">{subject}</span>
-              {selectedIndex === index && (
-                <Check size={16} className="text-primary-400 flex-shrink-0" />
-              )}
-            </button>
-          ))}
-        </div>
+        <>
+          {/* Mobile backdrop overlay */}
+          <div className="fixed inset-0 bg-black/20 backdrop-blur-sm z-[9998] md:hidden" />
+          
+          {/* Dropdown menu */}
+          <div className={`
+            absolute z-[9999] w-full mt-1 bg-gray-800/98 backdrop-blur-md border border-white/20 
+            rounded-lg shadow-2xl max-h-60 overflow-auto
+            md:bg-gray-800/95 md:border-white/10
+            ${isOpen ? 'animate-in fade-in-0 zoom-in-95 duration-200' : ''}
+          `}>
+            {subjects.map((subject, index) => (
+              <button
+                key={index}
+                type="button"
+                onClick={() => handleSubjectSelect(index)}
+                onTouchEnd={() => handleSubjectSelect(index)}
+                className={`
+                  w-full px-4 py-3 text-left text-white/90 hover:bg-white/15 active:bg-white/20
+                  transition-colors duration-200 touch-manipulation
+                  ${index === 0 ? 'rounded-t-lg' : ''}
+                  ${index === subjects.length - 1 ? 'rounded-b-lg' : ''}
+                  flex items-center justify-between
+                  ${selectedIndex === index ? 'bg-primary-500/20 text-primary-400' : ''}
+                `}
+              >
+                <span className="truncate pr-2">{subject}</span>
+                {selectedIndex === index && (
+                  <Check size={16} className="text-primary-400 flex-shrink-0" />
+                )}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   )
@@ -150,6 +252,9 @@ export function AIWriter() {
   const [templateCategory, setTemplateCategory] = useState('')
   const [templateTags, setTemplateTags] = useState('')
   
+  // Ref for auto-scroll to results on mobile
+  const resultsRef = useRef<HTMLDivElement>(null)
+  
   const [prompt, setPrompt] = useState<EmailPrompt>({
     companyName: '',
     product: '',
@@ -166,7 +271,7 @@ export function AIWriter() {
     { id: 'SaaS', name: 'SaaS Product', icon: Zap, description: 'Feature-benefit focused with trial CTAs' },
     { id: 'Services', name: 'Services', icon: PenTool, description: 'Expertise-focused consultation requests' },
     { id: 'Agency', name: 'Agency', icon: MessageCircle, description: 'Results-focused with case studies' },
-    { id: 'E-commerce', name: 'E-commerce', icon: Download, description: 'Product-focused with offers' },
+    { id: 'E-commerce', name: 'E-commerce', icon: Sparkles, description: 'Product-focused with offers' },
     { id: 'Networking', name: 'Networking', icon: Mail, description: 'Relationship-focused connections' }
   ]
 
@@ -225,7 +330,21 @@ export function AIWriter() {
       setSelectedSubjectIndex(0)
       setSelectedBodyIndex(0)
       toast.success('Email options generated successfully!')
-    } catch (error) {
+      
+      // Auto-scroll to results on mobile
+      setTimeout(() => {
+        if (resultsRef.current) {
+          const isMobile = window.innerWidth < 768
+          if (isMobile) {
+            resultsRef.current.scrollIntoView({ 
+              behavior: 'smooth', 
+              block: 'start',
+              inline: 'nearest'
+            })
+          }
+        }
+      }, 100)
+    } catch (error: any) {
       console.error('Generation failed:', error)
       toast.error('Failed to generate email. Please try again.')
     } finally {
@@ -475,6 +594,7 @@ export function AIWriter() {
         {/* Output Panel */}
         <div className="space-y-6">
           <motion.div
+            ref={resultsRef}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.4 }}
@@ -506,7 +626,7 @@ export function AIWriter() {
                     className="p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
                     title="Save as template"
                   >
-                    <BookOpen size={18} />
+                    <Sparkles size={18} /> {/* Changed from BookOpen to Sparkles */}
                   </button>
                 </div>
               )}
@@ -534,7 +654,7 @@ export function AIWriter() {
                   
                   {/* Tab Headers */}
                   <div className="flex gap-2 mb-4 overflow-x-auto">
-                    {generationResult.bodies.map((_, index) => (
+                    {generationResult.bodies.map((_: string, index: number) => (
                       <button
                         key={index}
                         onClick={() => setSelectedBodyIndex(index)}
@@ -570,7 +690,7 @@ export function AIWriter() {
                     onClick={() => setShowSaveTemplate(true)}
                     className="px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/5 transition-all flex items-center gap-2"
                   >
-                    <BookOpen size={16} />
+                    <Sparkles size={16} /> {/* Changed from BookOpen to Sparkles */}
                     Save as Template
                   </button>
                   <button
